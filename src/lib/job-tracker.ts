@@ -1,4 +1,4 @@
-// Redis client for job tracking
+﻿// Redis client for job tracking
 import { createClient } from "redis";
 
 export interface JobStatus {
@@ -17,9 +17,12 @@ class JobTracker {
   private connected: boolean = false;
 
   constructor() {
-    const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+    const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
     this.client = createClient({
       url: redisUrl,
+      socket: {
+        family: 4, // Force IPv4
+      },
     });
 
     this.client.on("error", (err) => {

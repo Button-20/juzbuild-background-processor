@@ -236,8 +236,23 @@ const gracefulShutdown = async (signal: string) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
+// Initialize Redis connection on startup
+const initializeRedis = async () => {
+  try {
+    await jobTracker.connect();
+    console.log(
+      `[${new Date().toISOString()}] Redis connection initialized successfully`
+    );
+  } catch (error) {
+    console.warn(
+      `[${new Date().toISOString()}] Redis connection failed:`,
+      error
+    );
+  }
+};
+
 // Start server
-const server = app.listen(port, () => {
+const server = app.listen(port, async () => {
   console.log(
     `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`
   );
@@ -247,6 +262,9 @@ const server = app.listen(port, () => {
   console.log(
     `[${new Date().toISOString()}] Job status endpoint: http://localhost:${port}/job-status/:jobId`
   );
+
+  // Initialize Redis connection
+  await initializeRedis();
 });
 
 export default app;

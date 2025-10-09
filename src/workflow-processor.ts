@@ -23,12 +23,22 @@ export class WorkflowProcessor {
     console.log(` Theme: ${options.selectedTheme}`);
     console.log(` Layout: ${options.layoutStyle}`);
 
-    // Create job in Redis
+    // Create job in Redis with initial steps
     try {
       await jobTracker.createJob(actualJobId, {
         status: "processing",
         message: `Starting website creation for ${options.websiteName}`,
+        currentStep: "Initializing website creation...",
         progress: 0,
+        estimatedCompletion: "5-8 minutes",
+        steps: [
+          { name: "Database Setup", status: "pending" },
+          { name: "Template Configuration", status: "pending" },
+          { name: "GitHub Repository", status: "pending" },
+          { name: "Vercel Deployment", status: "pending" },
+          { name: "Domain Configuration", status: "pending" },
+          { name: "Final Testing", status: "pending" },
+        ],
       });
     } catch (error) {
       console.warn("Failed to create job in Redis:", error);
@@ -42,8 +52,8 @@ export class WorkflowProcessor {
         progress: 10,
       });
 
-      // Use the actual website creation service
-      const result = await websiteCreationService.createWebsite(options);
+      // Use the actual website creation service with step tracking
+      const result = await websiteCreationService.createWebsite(options, actualJobId);
 
       if (result.success) {
         console.log(
@@ -55,7 +65,9 @@ export class WorkflowProcessor {
           await jobTracker.updateJob(actualJobId, {
             status: "completed",
             message: `Website creation completed successfully for ${options.websiteName}`,
+            currentStep: "Website ready!",
             progress: 100,
+            websiteUrl: result.data?.websiteUrl,
             result: result.data,
           });
         } catch (error) {

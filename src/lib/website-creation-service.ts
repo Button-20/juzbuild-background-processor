@@ -4,6 +4,7 @@ import { Octokit } from "@octokit/rest";
 import fs from "fs/promises";
 import { MongoClient } from "mongodb";
 import path from "path";
+import { jobTracker } from "./job-tracker.js";
 import { getNamecheapInstance } from "./namecheap.js";
 import { getVercelInstance } from "./vercel.js";
 
@@ -48,7 +49,8 @@ class WebsiteCreationService {
    * Main workflow orchestrator
    */
   async createWebsite(
-    options: WebsiteCreationOptions
+    options: WebsiteCreationOptions,
+    jobId?: string
   ): Promise<WorkflowResult> {
     const results: any = {};
     let vercelUrl: string | undefined;
@@ -56,8 +58,27 @@ class WebsiteCreationService {
     try {
       // Step 1: Database Creation
       console.log(`📊 Step 1: Creating database for ${options.websiteName}...`);
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Database Setup",
+          "in-progress",
+          "Setting up database...",
+          15
+        );
+      }
+
       const dbResult = await this.createLocalDatabase(options);
       if (!dbResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Database Setup",
+            "failed",
+            "Database setup failed",
+            15
+          );
+        }
         return {
           success: false,
           error: `Database creation failed: ${dbResult.error}`,
@@ -65,14 +86,43 @@ class WebsiteCreationService {
         };
       }
       results["Database Creation"] = dbResult.data;
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Database Setup",
+          "completed",
+          "Database setup completed",
+          30
+        );
+      }
       console.log(`✅ Database created successfully`);
 
       // Step 2: Template Generation
       console.log(
         `🎨 Step 2: Generating template for ${options.websiteName}...`
       );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Template Configuration",
+          "in-progress",
+          "Configuring website template...",
+          45
+        );
+      }
+
       const templateResult = await this.generateTemplate(options);
       if (!templateResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Template Configuration",
+            "failed",
+            "Template configuration failed",
+            45
+          );
+        }
         return {
           success: false,
           error: `Template generation failed: ${templateResult.error}`,
@@ -80,14 +130,43 @@ class WebsiteCreationService {
         };
       }
       results["Template Generation"] = templateResult.data;
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Template Configuration",
+          "completed",
+          "Template configuration completed",
+          55
+        );
+      }
       console.log(`✅ Template generated successfully`);
 
       // Step 3: GitHub Repository
       console.log(
         `🐙 Step 3: Creating GitHub repository for ${options.websiteName}...`
       );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "GitHub Repository",
+          "in-progress",
+          "Creating GitHub repository...",
+          65
+        );
+      }
+
       const githubResult = await this.pushToGitHub(options);
       if (!githubResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "GitHub Repository",
+            "failed",
+            "GitHub repository creation failed",
+            65
+          );
+        }
         return {
           success: false,
           error: `GitHub repository creation failed: ${githubResult.error}`,
@@ -95,14 +174,43 @@ class WebsiteCreationService {
         };
       }
       results["GitHub Repository"] = githubResult.data;
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "GitHub Repository",
+          "completed",
+          "GitHub repository created",
+          75
+        );
+      }
       console.log(`✅ GitHub repository created successfully`);
 
       // Step 4: Vercel Deployment
       console.log(
         `🚀 Step 4: Deploying to Vercel for ${options.websiteName}...`
       );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Vercel Deployment",
+          "in-progress",
+          "Deploying to Vercel...",
+          85
+        );
+      }
+
       const vercelResult = await this.deployToVercel(options, githubResult);
       if (!vercelResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Vercel Deployment",
+            "failed",
+            "Vercel deployment failed",
+            85
+          );
+        }
         return {
           success: false,
           error: `Vercel deployment failed: ${vercelResult.error}`,
@@ -111,17 +219,46 @@ class WebsiteCreationService {
       }
       results["Vercel Deployment"] = vercelResult.data;
       vercelUrl = vercelResult.data?.vercelUrl;
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Vercel Deployment",
+          "completed",
+          "Vercel deployment completed",
+          90
+        );
+      }
       console.log(`✅ Vercel deployment completed successfully`);
 
       // Step 5: Subdomain Setup
       console.log(
         `🌐 Step 5: Setting up subdomain for ${options.websiteName}...`
       );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Domain Configuration",
+          "in-progress",
+          "Configuring domain...",
+          95
+        );
+      }
+
       const subdomainResult = await this.createSubdomainOnNamecheap(
         options,
         vercelUrl
       );
       if (!subdomainResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Domain Configuration",
+            "failed",
+            "Domain configuration failed",
+            95
+          );
+        }
         return {
           success: false,
           error: `Subdomain setup failed: ${subdomainResult.error}`,
@@ -129,14 +266,43 @@ class WebsiteCreationService {
         };
       }
       results["Subdomain Setup"] = subdomainResult.data;
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Domain Configuration",
+          "completed",
+          "Domain configuration completed",
+          98
+        );
+      }
       console.log(`✅ Subdomain configured successfully`);
 
-      // Step 6: Email Notification
+      // Step 6: Final Testing
       console.log(
-        `📧 Step 6: Sending notification email for ${options.websiteName}...`
+        `🧪 Step 6: Running final tests for ${options.websiteName}...`
       );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Final Testing",
+          "in-progress",
+          "Running final tests...",
+          99
+        );
+      }
+
       const emailResult = await this.sendSetupNotification(options);
       if (!emailResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Final Testing",
+            "failed",
+            "Final testing failed",
+            99
+          );
+        }
         return {
           success: false,
           error: `Email notification failed: ${emailResult.error}`,
@@ -144,14 +310,19 @@ class WebsiteCreationService {
         };
       }
       results["Email Notification"] = emailResult.data;
-      console.log(`✅ Email notification sent successfully`);
 
       // Step 7: Database Logging
-      console.log(
-        `💾 Step 7: Logging site creation for ${options.websiteName}...`
-      );
       const loggingResult = await this.logSiteCreation(options);
       if (!loggingResult.success) {
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Final Testing",
+            "failed",
+            "Final testing failed",
+            99
+          );
+        }
         return {
           success: false,
           error: `Database logging failed: ${loggingResult.error}`,
@@ -159,7 +330,17 @@ class WebsiteCreationService {
         };
       }
       results["Database Logging"] = loggingResult.data;
-      console.log(`✅ Site creation logged successfully`);
+
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Final Testing",
+          "completed",
+          "Website creation completed!",
+          100
+        );
+      }
+      console.log(`✅ Website creation completed successfully`);
 
       // Step 8: Cleanup temporary template
       console.log(
@@ -179,7 +360,9 @@ class WebsiteCreationService {
             options.websiteName.toLowerCase().replace(/[^a-z0-9]/g, "-") +
             "-" +
             Date.now(),
-          domain: `${options.domainName}.juzbuild.com`,
+          domain: `${options.domainName}.onjuzbuild.com`,
+          websiteUrl:
+            vercelUrl || `https://${options.domainName}.onjuzbuild.com`,
           status: "active",
           results,
         },

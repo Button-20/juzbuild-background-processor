@@ -133,9 +133,10 @@ app.get("/job-status/:jobId", verifySecret, async (req, res) => {
       });
     }
 
+    // Return job status in the format expected by the frontend
     res.json({
       success: true,
-      job: jobStatus,
+      ...jobStatus, // Spread all job properties at root level
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

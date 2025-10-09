@@ -17,7 +17,6 @@ export async function sendWebsiteCreationEmail(websiteData: {
   websiteName: string;
   domain: string;
   theme: string;
-  layoutStyle: string;
   websiteUrl: string;
   createdAt: string;
 }): Promise<void> {
@@ -51,7 +50,6 @@ export async function sendWebsiteCreationEmail(websiteData: {
                     <li><strong>Company:</strong> ${websiteData.companyName}</li>
                     <li><strong>Domain:</strong> <a href="${websiteData.websiteUrl}">${websiteData.domain}</a></li>
                     <li><strong>Theme:</strong> ${websiteData.theme}</li>
-                    <li><strong>Layout:</strong> ${websiteData.layoutStyle}</li>
                 </ul>
 
                 <p>Your website includes:</p>

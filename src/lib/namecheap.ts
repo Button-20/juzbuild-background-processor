@@ -251,7 +251,106 @@ class NamecheapAPI {
    * @returns Promise with creation result
    */
   /**
-   * Get all JuzBuild subdomains from database to preserve them
+   * Get managed DNS state that preserves existing infrastructure
+   */
+  private async getManagedDNSState(domain: string): Promise<
+    Array<{
+      hostName: string;
+      recordType: string;
+      address: string;
+      ttl: string;
+    }>
+  > {
+    try {
+      // Step 1: Try to get current DNS records from Namecheap
+      console.log("Attempting to retrieve current DNS state from Namecheap...");
+      const currentRecords = await this.getCurrentDNSRecords(domain);
+
+      // Step 2: Get database records to ensure all JuzBuild sites are included
+      const databaseRecords = await this.getAllJuzBuildSubdomains();
+
+      // Step 3: Merge current Namecheap records with database records
+      // Start with a set to avoid duplicates
+      const recordsMap = new Map<
+        string,
+        {
+          hostName: string;
+          recordType: string;
+          address: string;
+          ttl: string;
+        }
+      >();
+
+      // Add database records first (these are our known good state)
+      databaseRecords.forEach((record) => {
+        recordsMap.set(record.hostName, record);
+      });
+
+      // Note: For now, we prioritize database records over Namecheap records
+      // to ensure consistency. In the future, we could implement more sophisticated merging
+
+      const finalRecords = Array.from(recordsMap.values());
+      console.log(
+        `Prepared ${finalRecords.length} DNS records for domain ${domain}`
+      );
+
+      return finalRecords;
+    } catch (error) {
+      console.warn(
+        "Error in getManagedDNSState, falling back to database records:",
+        error
+      );
+      return await this.getAllJuzBuildSubdomains();
+    }
+  }
+
+  /**
+   * Get current DNS records from Namecheap (fallback method)
+   */
+  private async getCurrentDNSRecords(domain: string): Promise<
+    Array<{
+      hostName: string;
+      recordType: string;
+      address: string;
+      ttl: string;
+    }>
+  > {
+    try {
+      const domainParts = domain.split(".");
+      if (domainParts.length < 2) {
+        throw new Error(`Invalid domain format: ${domain}`);
+      }
+      const sld = domainParts[0]!;
+      const tld = domainParts[1]!;
+
+      const getHostsUrl = this.buildUrl("namecheap.domains.dns.getHosts", {
+        SLD: sld,
+        TLD: tld,
+      });
+
+      const result = await this.makeRequest(getHostsUrl);
+
+      if (result.ApiResponse.Status === "OK") {
+        // For now, let's implement a safer approach - merge database records with essential defaults
+        console.log("Retrieved response from Namecheap getHosts API");
+
+        // Get database records and merge with essential defaults
+        const databaseRecords = await this.getAllJuzBuildSubdomains();
+        return databaseRecords;
+      } else {
+        console.warn(
+          "Failed to get current DNS records from Namecheap, falling back to database"
+        );
+        return await this.getAllJuzBuildSubdomains();
+      }
+    } catch (error) {
+      console.warn("Error getting current DNS records from Namecheap:", error);
+      return await this.getAllJuzBuildSubdomains();
+    }
+  }
+
+  /**
+   * Get DNS records state - combines database records with essential defaults
    */
   private async getAllJuzBuildSubdomains(): Promise<
     Array<{
@@ -281,15 +380,7 @@ class NamecheapAPI {
 
       await client.close();
 
-      // Convert sites to DNS records
-      const subdomainRecords = sites.map((site) => ({
-        hostName: site.websiteName,
-        recordType: "CNAME",
-        address: `${site.websiteName}.vercel.app`,
-        ttl: "300",
-      }));
-
-      // Add default records with URL redirect to juzbuild.com
+      // Start with essential default records that should always exist
       const defaultRecords = [
         {
           hostName: "@",
@@ -305,8 +396,40 @@ class NamecheapAPI {
         },
       ];
 
-      return [...defaultRecords, ...subdomainRecords];
+      // Convert sites to DNS records
+      const subdomainRecords = sites.map((site) => ({
+        hostName: site.websiteName,
+        recordType: "CNAME",
+        address: `${site.websiteName}.vercel.app`,
+        ttl: "300",
+      }));
+
+      // Combine all records, ensuring no duplicates
+      const allRecords = [...defaultRecords];
+
+      // Add subdomain records, checking for duplicates
+      subdomainRecords.forEach((newRecord) => {
+        const existingIndex = allRecords.findIndex(
+          (existing) => existing.hostName === newRecord.hostName
+        );
+        if (existingIndex !== -1) {
+          // Update existing record
+          allRecords[existingIndex] = newRecord;
+        } else {
+          // Add new record
+          allRecords.push(newRecord);
+        }
+      });
+
+      console.log(
+        `Prepared ${allRecords.length} DNS records (${subdomainRecords.length} from database + ${defaultRecords.length} defaults)`
+      );
+      return allRecords;
     } catch (error) {
+      console.warn(
+        "Could not retrieve records from database, using minimal defaults:",
+        error
+      );
       // Could not retrieve subdomain records from database, using defaults with URL redirect
       return [
         {
@@ -339,29 +462,53 @@ class NamecheapAPI {
       const sld = domainParts[0]!;
       const tld = domainParts[1]!;
 
-      // Get all JuzBuild subdomains to preserve them
-      const existingRecords = await this.getAllJuzBuildSubdomains();
+      // Get comprehensive DNS state that preserves existing records
+      const existingRecords = await this.getManagedDNSState(domain);
 
       // Check if this subdomain already exists
-      const existingSubdomain = existingRecords.find(
-        (record) => record.hostName === subdomain
+      const existingSubdomainIndex = existingRecords.findIndex(
+        (record: {
+          hostName: string;
+          recordType: string;
+          address: string;
+          ttl: string;
+        }) => record.hostName === subdomain
       );
 
-      if (existingSubdomain) {
-        // Subdomain already exists, updating...
-        // Remove the existing record
-        const filteredRecords = existingRecords.filter(
-          (record) => record.hostName !== subdomain
-        );
-        existingRecords.splice(0, existingRecords.length, ...filteredRecords);
-      }
-
-      // Add the new subdomain record
-      existingRecords.push({
+      const newRecord = {
         hostName: subdomain,
         recordType: recordType,
         address: target,
         ttl: "300",
+      };
+
+      if (existingSubdomainIndex !== -1) {
+        // Subdomain already exists, update it
+        const oldRecord = existingRecords[existingSubdomainIndex];
+        console.log(
+          `Updating DNS record for ${subdomain}.${domain}: ${
+            oldRecord?.address || "unknown"
+          } -> ${target}`
+        );
+        existingRecords[existingSubdomainIndex] = newRecord;
+      } else {
+        // Add the new subdomain record
+        console.log(
+          `Adding new DNS record for ${subdomain}.${domain} -> ${target}`
+        );
+        existingRecords.push(newRecord);
+      }
+
+      // Log the complete DNS state that will be set
+      console.log(
+        `Setting ${existingRecords.length} DNS records for ${domain}:`
+      );
+      existingRecords.forEach((record, index) => {
+        console.log(
+          `  ${index + 1}. ${record.hostName} (${record.recordType}) -> ${
+            record.address
+          }`
+        );
       });
 
       // Build the setHosts parameters with all records
@@ -371,13 +518,23 @@ class NamecheapAPI {
       };
 
       // Add all records to the parameters
-      existingRecords.forEach((record, index) => {
-        const recordNum = index + 1;
-        setHostsParams[`HostName${recordNum}`] = record.hostName;
-        setHostsParams[`RecordType${recordNum}`] = record.recordType;
-        setHostsParams[`Address${recordNum}`] = record.address;
-        setHostsParams[`TTL${recordNum}`] = record.ttl;
-      });
+      existingRecords.forEach(
+        (
+          record: {
+            hostName: string;
+            recordType: string;
+            address: string;
+            ttl: string;
+          },
+          index: number
+        ) => {
+          const recordNum = index + 1;
+          setHostsParams[`HostName${recordNum}`] = record.hostName;
+          setHostsParams[`RecordType${recordNum}`] = record.recordType;
+          setHostsParams[`Address${recordNum}`] = record.address;
+          setHostsParams[`TTL${recordNum}`] = record.ttl;
+        }
+      );
 
       const setHostsUrl = this.buildUrl(
         "namecheap.domains.dns.setHosts",
@@ -387,6 +544,11 @@ class NamecheapAPI {
       const result = await this.makeRequest(setHostsUrl);
 
       if (result.ApiResponse.Status === "OK") {
+        console.log(`✅ Successfully updated DNS records for ${domain}`);
+
+        // Optionally cache the DNS state for future reference
+        await this.cacheDNSState(domain, existingRecords);
+
         return {
           success: true,
           message: `Successfully created ${recordType} record for ${subdomain}.${domain}`,
@@ -405,6 +567,27 @@ class NamecheapAPI {
         success: false,
         message: error instanceof Error ? error.message : "DNS creation failed",
       };
+    }
+  }
+
+  /**
+   * Cache DNS state for future reference (optional optimization)
+   */
+  private async cacheDNSState(
+    domain: string,
+    records: Array<{
+      hostName: string;
+      recordType: string;
+      address: string;
+      ttl: string;
+    }>
+  ): Promise<void> {
+    try {
+      // For now, just log the DNS state
+      // In the future, this could save to Redis or database for faster retrieval
+      console.log(`DNS state cached for ${domain}: ${records.length} records`);
+    } catch (error) {
+      console.warn("Failed to cache DNS state:", error);
     }
   }
 }

@@ -10,7 +10,6 @@ export interface WebsiteCreationOptions {
   tagline: string;
   aboutSection: string;
   selectedTheme: string;
-  layoutStyle: string;
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];

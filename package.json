@@ -11,6 +11,7 @@
     "build:clean": "npm run clean && npm run build",
     "verify": "npm run build && node dist/server.js --version",
     "test:job-tracker": "npm run build && node dist/test-job-tracker.js",
+    "test:vercel": "npm run build && node test-vercel-deployment.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

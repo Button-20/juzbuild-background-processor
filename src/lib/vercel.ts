@@ -141,31 +141,77 @@ class VercelAPI {
       throw new Error(`Invalid GitHub URL format: ${gitUrl}`);
     }
 
-    const result = await this.vercel.deployments.createDeployment({
-      requestBody: {
-        name: projectName,
-        target: "production",
-        gitSource: {
-          type: "github",
-          repo: repoName,
-          ref: "main",
-          org: orgName,
+    console.log(
+      `Creating Vercel deployment from GitHub: ${orgName}/${repoName}`
+    );
+
+    let deploymentResult;
+
+    try {
+      // Try with main branch first
+      deploymentResult = await this.vercel.deployments.createDeployment({
+        requestBody: {
+          name: projectName,
+          target: "production",
+          gitSource: {
+            type: "github",
+            repo: repoName,
+            ref: "main",
+            org: orgName,
+          },
         },
-      },
-    });
-
-    const deployment: VercelDeployment = {
-      id: result.id!,
-      url: result.url!,
-      status: result.status || "QUEUED",
-      readyState: result.readyState || "QUEUED",
-    };
-
-    if (result.alias) {
-      deployment.alias = result.alias;
+      });
+    } catch (mainBranchError) {
+      // If main branch fails, try master branch
+      console.log("Main branch failed, trying master branch...");
+      try {
+        deploymentResult = await this.vercel.deployments.createDeployment({
+          requestBody: {
+            name: projectName,
+            target: "production",
+            gitSource: {
+              type: "github",
+              repo: repoName,
+              ref: "master",
+              org: orgName,
+            },
+          },
+        });
+      } catch (masterBranchError) {
+        // If both fail, throw the original error
+        throw mainBranchError;
+      }
     }
 
-    return deployment;
+    try {
+      const result = deploymentResult;
+
+      const deployment: VercelDeployment = {
+        id: result.id!,
+        url: result.url!,
+        status: result.status || "QUEUED",
+        readyState: result.readyState || "QUEUED",
+      };
+
+      if (result.alias) {
+        deployment.alias = result.alias;
+      }
+
+      return deployment;
+    } catch (error) {
+      // Enhanced error handling for GitHub repository issues
+      if (
+        error instanceof Error &&
+        error.message.includes("incorrect_git_source_info")
+      ) {
+        throw new Error(
+          `GitHub repository ${orgName}/${repoName} is not ready for deployment. ` +
+            "The repository may be empty, still being created, or the main branch doesn't exist. " +
+            "Please ensure the repository has commits and try again."
+        );
+      }
+      throw error;
+    }
   }
 
   /**
@@ -194,6 +240,7 @@ class VercelAPI {
     try {
       const result = await this.vercel.deployments.getDeployment({
         idOrUrl: deploymentId,
+        withGitRepoInfo: "true",
       });
 
       const deployment: VercelDeployment = {
@@ -209,6 +256,34 @@ class VercelAPI {
 
       return deployment;
     } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Assign an alias to a deployment
+   * @param deploymentId - Deployment ID
+   * @param aliasName - Alias name (e.g., "my-project.vercel.app")
+   * @returns Promise with alias details
+   */
+  async assignAlias(
+    deploymentId: string,
+    aliasName: string
+  ): Promise<{ alias: string }> {
+    try {
+      const result = await this.vercel.aliases.assignAlias({
+        id: deploymentId,
+        requestBody: {
+          alias: aliasName,
+          redirect: null,
+        },
+      });
+
+      return {
+        alias: result.alias || aliasName,
+      };
+    } catch (error) {
+      console.warn(`Failed to assign alias ${aliasName}:`, error);
       throw error;
     }
   }

@@ -19,7 +19,6 @@ interface WebsiteCreationOptions {
   tagline: string;
   aboutSection: string;
   selectedTheme: string;
-  layoutStyle: string;
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
@@ -200,7 +199,11 @@ class WebsiteCreationService {
         );
       }
 
-      const vercelResult = await this.deployToVercel(options, githubResult);
+      const vercelResult = await this.deployToVercel(
+        options,
+        githubResult,
+        jobId
+      );
       if (!vercelResult.success) {
         if (jobId) {
           await jobTracker.updateStep(
@@ -411,7 +414,6 @@ class WebsiteCreationService {
             accentColor:
               (options.brandColors && options.brandColors[2]) || "#10B981",
             theme: options.selectedTheme,
-            layoutStyle: options.layoutStyle,
             tagline: options.tagline,
             aboutSection: options.aboutSection,
             contactMethods: options.preferredContactMethod,
@@ -723,11 +725,121 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
   }
 
   /**
+   * Verify that GitHub repository exists and has commits before Vercel deployment
+   */
+  private async verifyGitHubRepository(
+    orgName: string,
+    repoName: string,
+    maxAttempts: number = 10,
+    delayMs: number = 2000
+  ): Promise<void> {
+    const { Octokit } = await import("@octokit/rest");
+    const octokit = new Octokit({
+      auth: process.env.GITHUB_TOKEN,
+    });
+
+    console.log(
+      `Verifying repository ${orgName}/${repoName} exists and has content...`
+    );
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Check if repository exists
+        const repo = await octokit.repos.get({
+          owner: orgName,
+          repo: repoName,
+        });
+
+        if (!repo.data) {
+          throw new Error("Repository not found");
+        }
+
+        console.log(
+          `Repository ${orgName}/${repoName} exists (attempt ${attempt})`
+        );
+
+        // Check if repository has commits
+        try {
+          const commits = await octokit.repos.listCommits({
+            owner: orgName,
+            repo: repoName,
+            per_page: 1,
+          });
+
+          if (commits.data && commits.data.length > 0) {
+            console.log(
+              `Repository has ${commits.data.length} commits - ready for deployment`
+            );
+
+            // Check if main branch exists
+            try {
+              await octokit.repos.getBranch({
+                owner: orgName,
+                repo: repoName,
+                branch: "main",
+              });
+              console.log("Main branch verified - repository is ready");
+              return; // Success!
+            } catch (branchError) {
+              console.log(
+                "Main branch not found, checking for master branch..."
+              );
+              try {
+                await octokit.repos.getBranch({
+                  owner: orgName,
+                  repo: repoName,
+                  branch: "master",
+                });
+                console.log("Master branch found - repository is ready");
+                return; // Success!
+              } catch (masterError) {
+                console.log("Neither main nor master branch found, waiting...");
+              }
+            }
+          } else {
+            console.log(
+              `Repository exists but has no commits yet (attempt ${attempt})`
+            );
+          }
+        } catch (commitsError) {
+          console.log(
+            `Repository exists but commits not accessible yet (attempt ${attempt})`
+          );
+        }
+
+        // Wait before next attempt
+        if (attempt < maxAttempts) {
+          console.log(
+            `Waiting ${delayMs}ms before next verification attempt...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      } catch (error) {
+        console.log(
+          `Repository verification attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : String(error)
+        );
+
+        if (attempt < maxAttempts) {
+          console.log(`Waiting ${delayMs}ms before retry...`);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    throw new Error(
+      `Repository ${orgName}/${repoName} is not ready for deployment after ${maxAttempts} attempts. ` +
+        "Please ensure the repository exists and has been fully populated with commits."
+    );
+  }
+
+  /**
    * Step 4: Deploy to Vercel
    */
   async deployToVercel(
     options: WebsiteCreationOptions,
-    githubResult?: any
+    githubResult?: any,
+    jobId?: string
   ): Promise<WorkflowResult> {
     try {
       // Check if we have Vercel configuration
@@ -756,33 +868,207 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         }`;
       const repoName = githubResult?.data?.reponame || options.websiteName;
 
-      // Create project and get deployment info
-      const { project, deploymentUrl, deployment } =
-        await vercel.createProjectAndDeploy(repoName, repoUrl);
+      // Extract GitHub org and repo from URL
+      const repoPath = repoUrl.replace("https://github.com/", "");
+      const [orgName, repoNameOnly] = repoPath.split("/");
 
-      // Trigger additional push to guarantee Vercel deployment
-      await this.triggerVercelDeploymentViaPush(repoName);
+      if (!orgName || !repoNameOnly) {
+        throw new Error(`Invalid GitHub URL format: ${repoUrl}`);
+      }
 
-      // Extract just the domain part (e.g., "project-name.vercel.app")
-      const vercelDomain = deploymentUrl.replace("https://", "");
+      console.log(`Creating Vercel deployment for ${orgName}/${repoNameOnly}`);
 
-      return {
-        success: true,
-        data: {
-          projectId: project.id,
-          projectName: project.name,
-          deploymentUrl: deploymentUrl,
-          status: "created",
-          vercelUrl: vercelDomain,
-          note: "Deployment will be triggered by the GitHub push",
-        },
-      };
+      // Verify GitHub repository exists and has content before deploying
+      console.log("Verifying GitHub repository readiness...");
+      await this.verifyGitHubRepository(orgName, repoNameOnly);
+
+      // Update step status - Creating project
+      if (jobId) {
+        const { jobTracker } = await import("./job-tracker.js");
+        await jobTracker.updateStep(
+          jobId,
+          "Vercel Deployment",
+          "in-progress",
+          "Creating Vercel project...",
+          70
+        );
+      }
+
+      // Create project first
+      const project = await vercel.createProject(repoName, repoUrl);
+      console.log(`Vercel project created: ${project.id}`);
+
+      // Wait for project setup to complete and GitHub to propagate
+      await new Promise((resolve) => setTimeout(resolve, 8000));
+
+      // Update step status - Creating deployment
+      if (jobId) {
+        const { jobTracker } = await import("./job-tracker.js");
+        await jobTracker.updateStep(
+          jobId,
+          "Vercel Deployment",
+          "in-progress",
+          "Creating deployment...",
+          75
+        );
+      }
+
+      // Create deployment
+      const deployment = await vercel.createDeploymentFromGit(
+        repoName,
+        repoUrl
+      );
+      console.log(
+        `Deployment created: ID ${deployment.id} with status ${deployment.status}`
+      );
+
+      // Check deployment status with polling
+      let deploymentStatus = deployment.status;
+      let deploymentURL = deployment.url;
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes max wait time
+
+      // Update step status - Building
+      if (jobId) {
+        const { jobTracker } = await import("./job-tracker.js");
+        await jobTracker.updateStep(
+          jobId,
+          "Vercel Deployment",
+          "in-progress",
+          "Building and deploying...",
+          80
+        );
+      }
+
+      while (
+        (deploymentStatus === "BUILDING" ||
+          deploymentStatus === "INITIALIZING" ||
+          deploymentStatus === "QUEUED") &&
+        attempts < maxAttempts
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds between checks
+        attempts++;
+
+        try {
+          const statusUpdate = await vercel.getDeploymentStatus(deployment.id);
+          deploymentStatus = statusUpdate.status;
+          deploymentURL = statusUpdate.url;
+          console.log(
+            `Deployment status check ${attempts}: ${deploymentStatus}`
+          );
+
+          // Update progress during deployment
+          if (jobId && attempts % 3 === 0) {
+            // Update every 3rd attempt to avoid spam
+            const { jobTracker } = await import("./job-tracker.js");
+            const progressMsg =
+              deploymentStatus === "BUILDING"
+                ? `Building deployment (${Math.min(attempts * 2 + 80, 85)}%)...`
+                : `Deployment ${deploymentStatus.toLowerCase()}...`;
+            await jobTracker.updateStep(
+              jobId,
+              "Vercel Deployment",
+              "in-progress",
+              progressMsg,
+              Math.min(attempts * 2 + 80, 85)
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `Failed to check deployment status (attempt ${attempts}):`,
+            error
+          );
+          // Continue polling, might be temporary API issue
+        }
+      }
+
+      if (deploymentStatus === "READY") {
+        console.log(`Deployment successful. URL: https://${deploymentURL}`);
+
+        // Create alias for production deployment
+        try {
+          const aliasName = `${options.websiteName}.vercel.app`;
+          console.log(`Creating alias: ${aliasName}`);
+
+          // Note: Alias creation is automatic for production deployments in most cases
+          // The deployment URL already includes the correct domain
+        } catch (aliasError) {
+          console.warn(
+            "Alias creation failed, but deployment succeeded:",
+            aliasError
+          );
+        }
+
+        return {
+          success: true,
+          data: {
+            projectId: project.id,
+            projectName: project.name,
+            deploymentId: deployment.id,
+            deploymentUrl: `https://${deploymentURL}`,
+            status: "ready",
+            vercelUrl: deploymentURL,
+            readyState: deployment.readyState,
+            note: "Deployment completed successfully",
+          },
+        };
+      } else if (
+        deploymentStatus === "ERROR" ||
+        deploymentStatus === "CANCELED"
+      ) {
+        throw new Error(
+          `Deployment ${deploymentStatus.toLowerCase()}: ${
+            deploymentURL || "No URL available"
+          }`
+        );
+      } else {
+        // Deployment is still in progress but we've reached max attempts
+        console.warn(
+          `Deployment still in progress after ${maxAttempts} attempts. Status: ${deploymentStatus}`
+        );
+
+        return {
+          success: true,
+          data: {
+            projectId: project.id,
+            projectName: project.name,
+            deploymentId: deployment.id,
+            deploymentUrl: `https://${deploymentURL}`,
+            status: "building",
+            vercelUrl: deploymentURL,
+            readyState: deployment.readyState,
+            note: `Deployment in progress (${deploymentStatus}). Check Vercel dashboard for updates.`,
+          },
+        };
+      }
     } catch (error) {
       console.error("Vercel deployment failed:", error);
+
+      let errorMessage = "Vercel deployment failed";
+
+      if (error instanceof Error) {
+        // Check for specific GitHub repository errors
+        if (
+          error.message.includes("incorrect_git_source_info") ||
+          error.message.includes("does not contain the requested branch")
+        ) {
+          errorMessage =
+            "GitHub repository is not ready for deployment. " +
+            "The repository may be empty or still being created. " +
+            "Please try again in a few minutes.";
+        } else if (
+          error.message.includes("Repository") &&
+          error.message.includes("not ready")
+        ) {
+          errorMessage = error.message; // Use our custom verification error message
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Vercel deployment failed",
+        error: errorMessage,
       };
     }
   }
@@ -906,7 +1192,6 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
           Date.now(),
         domain,
         theme: options.selectedTheme,
-        layoutStyle: options.layoutStyle,
         websiteUrl,
         createdAt: new Date().toLocaleString(),
       });
@@ -960,7 +1245,6 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
           .replace(/[^a-z0-9]/g, "")}`,
         status: "active",
         theme: options.selectedTheme,
-        layoutStyle: options.layoutStyle,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

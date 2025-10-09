@@ -21,7 +21,6 @@ export class WorkflowProcessor {
     console.log(` Company: ${options.companyName}`);
     console.log(` Domain: ${options.domainName}`);
     console.log(` Theme: ${options.selectedTheme}`);
-    console.log(` Layout: ${options.layoutStyle}`);
 
     // Create job in Redis with initial steps
     try {
@@ -53,7 +52,10 @@ export class WorkflowProcessor {
       });
 
       // Use the actual website creation service with step tracking
-      const result = await websiteCreationService.createWebsite(options, actualJobId);
+      const result = await websiteCreationService.createWebsite(
+        options,
+        actualJobId
+      );
 
       if (result.success) {
         console.log(

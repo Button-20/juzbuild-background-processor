@@ -636,7 +636,7 @@ class WebsiteCreationService {
       const repo = await octokit.repos.createForAuthenticatedUser({
         name: repoName,
         description: `Real estate website for ${options.companyName} - Created with Juzbuild`,
-        private: false,
+        private: true,
         auto_init: false, // Don't initialize with README, we'll create our own
       });
 

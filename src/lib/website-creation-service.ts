@@ -8,6 +8,18 @@ import { jobTracker } from "./job-tracker.js";
 import { getNamecheapInstance } from "./namecheap.js";
 import { getVercelInstance } from "./vercel.js";
 
+// Theme display name mapping
+function getThemeDisplayName(themeId: string): string {
+  const themeMap: Record<string, string> = {
+    'homely': 'Homely',
+    'modern': 'Modern',
+    'classic': 'Classic',
+    'luxury': 'Luxury',
+    'minimal': 'Minimal',
+  };
+  return themeMap[themeId] || themeId.charAt(0).toUpperCase() + themeId.slice(1);
+}
+
 interface WebsiteCreationOptions {
   userId: string;
   websiteName: string;
@@ -15,6 +27,7 @@ interface WebsiteCreationOptions {
   fullName: string;
   companyName: string;
   domainName: string;
+  logoUrl?: string; // Cloudinary URL for uploaded logo
   brandColors: string[];
   tagline: string;
   aboutSection: string;
@@ -1180,29 +1193,26 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       // Import and use the email service
       const { sendWebsiteCreationEmail } = await import("./email.js");
 
-      // Use the hardcoded test email for now
-      const testEmail = "jasonaddy51@gmail.com";
+      // Get theme display name
+      const themeDisplayName = getThemeDisplayName(options.selectedTheme);
 
       await sendWebsiteCreationEmail({
-        userEmail: testEmail, // Using test email as requested
+        userEmail: options.userEmail,
         companyName: options.companyName,
-        websiteName:
-          options.websiteName.toLowerCase().replace(/[^a-z0-9]/g, "-") +
-          "-" +
-          Date.now(),
+        websiteName: options.companyName, // Use actual company name instead of slug
         domain,
-        theme: options.selectedTheme,
+        theme: themeDisplayName,
         websiteUrl,
         createdAt: new Date().toLocaleString(),
       });
 
-      console.log(`✅ Website creation email sent to: ${testEmail}`);
+      console.log(`✅ Website creation email sent to: ${options.userEmail}`);
 
       return {
         success: true,
         data: {
           emailSent: true,
-          recipient: testEmail,
+          recipient: options.userEmail,
           originalRecipient: options.userEmail,
           domain,
           websiteUrl,
@@ -1703,6 +1713,130 @@ export default function RootLayout({
 }
 `;
       await fs.writeFile(layoutPath, minimalLayout);
+    }
+
+    // Replace logos with user's uploaded logo if provided
+    if (options.logoUrl) {
+      await this.replaceLogosInTemplate(templatePath, options.logoUrl);
+    }
+  }
+
+  private async replaceLogosInTemplate(
+    templatePath: string,
+    logoUrl: string
+  ): Promise<void> {
+    try {
+      // Common logo file patterns to replace
+      const logoPatterns = [
+        'logo.svg',
+        'logo.png',
+        'logo.jpg',
+        'logo-dark.svg',
+        'logo-light.svg',
+        'icon.svg',
+        'icon.png'
+      ];
+
+      // Search in common directories
+      const searchDirs = [
+        'public',
+        'public/images',
+        'public/icons',
+        'public/assets',
+        'src/assets',
+        'assets'
+      ];
+
+      for (const searchDir of searchDirs) {
+        const fullSearchPath = path.join(templatePath, searchDir);
+        
+        try {
+          const files = await fs.readdir(fullSearchPath, { recursive: true });
+          
+          for (const file of files) {
+            const fileName = path.basename(file.toString());
+            if (logoPatterns.includes(fileName.toLowerCase())) {
+              const filePath = path.join(fullSearchPath, file.toString());
+              
+              // Download the logo from Cloudinary and replace the file
+              try {
+                const response = await fetch(logoUrl);
+                if (response.ok) {
+                  const buffer = await response.arrayBuffer();
+                  await fs.writeFile(filePath, Buffer.from(buffer));
+                }
+              } catch (downloadError) {
+                // Continue with other files if one fails
+              }
+            }
+          }
+        } catch (dirError) {
+          // Directory might not exist, continue with others
+        }
+      }
+
+      // Also replace logo references in component files
+      await this.replaceLogoReferencesInComponents(templatePath, logoUrl);
+    } catch (error) {
+      // Logo replacement is optional, don't fail the entire process
+    }
+  }
+
+  private async replaceLogoReferencesInComponents(
+    templatePath: string,
+    logoUrl: string
+  ): Promise<void> {
+    try {
+      // Find all component files that might reference logos
+      const componentDirs = [
+        'src/components',
+        'components'
+      ];
+
+      for (const componentDir of componentDirs) {
+        const fullComponentPath = path.join(templatePath, componentDir);
+        
+        try {
+          const files = await fs.readdir(fullComponentPath, { recursive: true });
+          
+          for (const file of files) {
+            const fileName = file.toString();
+            if (fileName.endsWith('.tsx') || fileName.endsWith('.jsx') || fileName.endsWith('.ts') || fileName.endsWith('.js')) {
+              const filePath = path.join(fullComponentPath, fileName);
+              
+              try {
+                let content = await fs.readFile(filePath, 'utf-8');
+                
+                // Replace common logo import patterns
+                content = content.replace(
+                  /(['"`])\/[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
+                  `$1${logoUrl}$1`
+                );
+                
+                // Replace relative logo paths
+                content = content.replace(
+                  /(['"`])\.\.[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
+                  `$1${logoUrl}$1`
+                );
+                
+                // Replace src attributes in img tags
+                content = content.replace(
+                  /src\s*=\s*(['"`])[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
+                  `src=$1${logoUrl}$1`
+                );
+
+                await fs.writeFile(filePath, content);
+              } catch (fileError) {
+                // Continue with other files
+              }
+            }
+          }
+        } catch (dirError) {
+          // Directory might not exist
+        }
+      }
+    } catch (error) {
+      // Logo reference replacement is optional
     }
   }
 

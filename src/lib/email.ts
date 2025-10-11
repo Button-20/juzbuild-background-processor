@@ -176,7 +176,9 @@ export async function sendWebsiteCreationEmail(websiteData: {
                 </div>
                 <div class="info-item">
                     <span class="info-label">Domain:</span>
-                    <span class="info-value"><a href="${websiteData.websiteUrl}">${websiteData.domain}</a></span>
+                    <span class="info-value"><a href="${
+                      websiteData.websiteUrl
+                    }">${websiteData.domain}</a></span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Theme:</span>
@@ -189,7 +191,9 @@ export async function sendWebsiteCreationEmail(websiteData: {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${websiteData.websiteUrl}" class="cta-button">🌐 View Your Website</a>
+                <a href="${
+                  websiteData.websiteUrl
+                }" class="cta-button">🌐 View Your Website</a>
                 <a href="https://juzbuild.com/dashboard" class="secondary-button">📊 Manage Website</a>
             </div>
 

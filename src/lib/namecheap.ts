@@ -270,7 +270,7 @@ class NamecheapAPI {
       const databaseRecords = await this.getAllJuzBuildSubdomains();
 
       // Step 3: Merge current Namecheap records with database records
-      // Start with a set to avoid duplicates
+      // Use a Map to handle duplicates - Namecheap records take precedence for non-JuzBuild subdomains
       const recordsMap = new Map<
         string,
         {
@@ -281,17 +281,22 @@ class NamecheapAPI {
         }
       >();
 
-      // Add database records first (these are our known good state)
-      databaseRecords.forEach((record) => {
-        recordsMap.set(record.hostName, record);
+      // First, add all existing Namecheap records (this preserves MX, TXT, A, etc.)
+      currentRecords.forEach((record) => {
+        const key = `${record.hostName}_${record.recordType}`;
+        recordsMap.set(key, record);
       });
 
-      // Note: For now, we prioritize database records over Namecheap records
-      // to ensure consistency. In the future, we could implement more sophisticated merging
+      // Then, add/update with database records (JuzBuild managed subdomains)
+      // These will override any conflicting CNAME records for our subdomains
+      databaseRecords.forEach((record) => {
+        const key = `${record.hostName}_${record.recordType}`;
+        recordsMap.set(key, record);
+      });
 
       const finalRecords = Array.from(recordsMap.values());
       console.log(
-        `Prepared ${finalRecords.length} DNS records for domain ${domain}`
+        `Prepared ${finalRecords.length} DNS records for domain ${domain} (${currentRecords.length} from Namecheap, ${databaseRecords.length} from database)`
       );
 
       return finalRecords;
@@ -328,23 +333,63 @@ class NamecheapAPI {
         TLD: tld,
       });
 
-      const result = await this.makeRequest(getHostsUrl);
+      console.log(
+        `Fetching existing DNS records from Namecheap for ${domain}...`
+      );
+      const response = await fetch(getHostsUrl);
 
-      if (result.ApiResponse.Status === "OK") {
-        // For now, let's implement a safer approach - merge database records with essential defaults
-        console.log("Retrieved response from Namecheap getHosts API");
-
-        // Get database records and merge with essential defaults
-        const databaseRecords = await this.getAllJuzBuildSubdomains();
-        return databaseRecords;
-      } else {
-        console.warn(
-          "Failed to get current DNS records from Namecheap, falling back to database"
-        );
-        return await this.getAllJuzBuildSubdomains();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const xmlText = await response.text();
+
+      // Parse the XML response to extract host records
+      const records: Array<{
+        hostName: string;
+        recordType: string;
+        address: string;
+        ttl: string;
+      }> = [];
+
+      // Extract host records using regex (simple XML parsing)
+      const hostRegex = /<host\s+([^>]+)>/gi;
+      let match;
+
+      while ((match = hostRegex.exec(xmlText)) !== null) {
+        const hostAttrs = match[1];
+
+        // Extract attributes
+        const nameMatch = hostAttrs?.match(/Name="([^"]+)"/);
+        const typeMatch = hostAttrs?.match(/Type="([^"]+)"/);
+        const addressMatch = hostAttrs?.match(/Address="([^"]+)"/);
+        const ttlMatch = hostAttrs?.match(/TTL="([^"]+)"/);
+
+        if (nameMatch && typeMatch && addressMatch && ttlMatch) {
+          records.push({
+            hostName: nameMatch[1] || "",
+            recordType: typeMatch[1] || "",
+            address: addressMatch[1] || "",
+            ttl: ttlMatch[1] || "1800",
+          });
+        }
+      }
+
+      console.log(
+        `Successfully retrieved ${records.length} existing DNS records from Namecheap`
+      );
+      records.forEach((record, index) => {
+        console.log(
+          `  ${index + 1}. ${record.hostName} (${record.recordType}) -> ${
+            record.address
+          }`
+        );
+      });
+
+      return records;
     } catch (error) {
       console.warn("Error getting current DNS records from Namecheap:", error);
+      console.log("Falling back to database records only");
       return await this.getAllJuzBuildSubdomains();
     }
   }

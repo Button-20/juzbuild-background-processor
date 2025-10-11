@@ -2,22 +2,45 @@
 
 import { Octokit } from "@octokit/rest";
 import fs from "fs/promises";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import path from "path";
 import { jobTracker } from "./job-tracker.js";
 import { getNamecheapInstance } from "./namecheap.js";
 import { getVercelInstance } from "./vercel.js";
 
-// Theme display name mapping
-function getThemeDisplayName(themeId: string): string {
-  const themeMap: Record<string, string> = {
-    'homely': 'Homely',
-    'modern': 'Modern',
-    'classic': 'Classic',
-    'luxury': 'Luxury',
-    'minimal': 'Minimal',
-  };
-  return themeMap[themeId] || themeId.charAt(0).toUpperCase() + themeId.slice(1);
+// Theme display name mapping - fetch from database
+async function getThemeDisplayName(themeId: string): Promise<string> {
+  try {
+    const client = new MongoClient(
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild"
+    );
+
+    await client.connect();
+    const db = client.db("Juzbuild");
+    const themesCollection = db.collection("themes");
+
+    // Try to find theme by ObjectId
+    let theme = null;
+
+    try {
+      theme = await themesCollection.findOne({ _id: new ObjectId(themeId) });
+    } catch {
+      // If themeId is not a valid ObjectId, try finding by name
+      theme = await themesCollection.findOne({ name: themeId });
+    }
+
+    await client.close();
+
+    if (theme && theme.name) {
+      return theme.name;
+    }
+
+    // Fallback to capitalizing the ID
+    return themeId.charAt(0).toUpperCase() + themeId.slice(1);
+  } catch (error) {
+    console.error("Error fetching theme name:", error);
+    return themeId.charAt(0).toUpperCase() + themeId.slice(1);
+  }
 }
 
 interface WebsiteCreationOptions {
@@ -1194,7 +1217,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       const { sendWebsiteCreationEmail } = await import("./email.js");
 
       // Get theme display name
-      const themeDisplayName = getThemeDisplayName(options.selectedTheme);
+      const themeDisplayName = await getThemeDisplayName(options.selectedTheme);
 
       await sendWebsiteCreationEmail({
         userEmail: options.userEmail,
@@ -1234,14 +1257,29 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
   async logSiteCreation(
     options: WebsiteCreationOptions
   ): Promise<WorkflowResult> {
+    console.log(
+      "[logSiteCreation] Starting site creation logging for:",
+      options.companyName
+    );
+
+    // Create a new MongoDB client for this operation to avoid connection conflicts
+    const client = new MongoClient(
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild"
+    );
+
     try {
-      await this.mongoClient.connect();
-      const db = this.mongoClient.db("Juzbuild"); // Use existing database name with capital J
+      console.log("[logSiteCreation] Connecting to MongoDB...");
+      await client.connect();
+      console.log("[logSiteCreation] Connected to MongoDB successfully");
+
+      const db = client.db("Juzbuild");
       const sitesCollection = db.collection("sites");
 
       const siteRecord = {
         userId: options.userId,
         userEmail: options.userEmail,
+        websiteName: options.companyName || options.websiteName, // Use companyName as display name
+        // Keep for backward compatibility
         websitename:
           options.websiteName.toLowerCase().replace(/[^a-z0-9]/g, "-") +
           "-" +
@@ -1259,7 +1297,23 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         updatedAt: new Date(),
       };
 
+      console.log(
+        "[logSiteCreation] Logging site creation for userId:",
+        options.userId
+      );
+      console.log("[logSiteCreation] userId type:", typeof options.userId);
+      console.log(
+        "[logSiteCreation] Site record:",
+        JSON.stringify(siteRecord, null, 2)
+      );
+      console.log("[logSiteCreation] Inserting into sites collection...");
+
       const result = await sitesCollection.insertOne(siteRecord);
+
+      console.log(
+        "[logSiteCreation] ✅ Site record inserted successfully! ID:",
+        result.insertedId.toString()
+      );
 
       return {
         success: true,
@@ -1269,13 +1323,19 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         },
       };
     } catch (error) {
-      console.error("Site logging failed:", error);
+      console.error("[logSiteCreation] ❌ Site logging failed:", error);
+      console.error("[logSiteCreation] Error details:", {
+        name: error instanceof Error ? error.name : "Unknown",
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : "Site logging failed",
       };
     } finally {
-      await this.mongoClient.close();
+      console.log("[logSiteCreation] Closing MongoDB connection");
+      await client.close();
     }
   }
 
@@ -1726,41 +1786,43 @@ export default function RootLayout({
     logoUrl: string
   ): Promise<void> {
     try {
+      // Optimize logo URL for sizing if it's a Cloudinary URL
+      const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
       // Common logo file patterns to replace
       const logoPatterns = [
-        'logo.svg',
-        'logo.png',
-        'logo.jpg',
-        'logo-dark.svg',
-        'logo-light.svg',
-        'icon.svg',
-        'icon.png'
+        "logo.svg",
+        "logo.png",
+        "logo.jpg",
+        "logo-dark.svg",
+        "logo-light.svg",
+        "icon.svg",
+        "icon.png",
       ];
 
       // Search in common directories
       const searchDirs = [
-        'public',
-        'public/images',
-        'public/icons',
-        'public/assets',
-        'src/assets',
-        'assets'
+        "public",
+        "public/images",
+        "public/icons",
+        "public/assets",
+        "src/assets",
+        "assets",
       ];
 
       for (const searchDir of searchDirs) {
         const fullSearchPath = path.join(templatePath, searchDir);
-        
+
         try {
           const files = await fs.readdir(fullSearchPath, { recursive: true });
-          
+
           for (const file of files) {
             const fileName = path.basename(file.toString());
             if (logoPatterns.includes(fileName.toLowerCase())) {
               const filePath = path.join(fullSearchPath, file.toString());
-              
-              // Download the logo from Cloudinary and replace the file
+
+              // Download the optimized logo from Cloudinary and replace the file
               try {
-                const response = await fetch(logoUrl);
+                const response = await fetch(optimizedLogoUrl);
                 if (response.ok) {
                   const buffer = await response.arrayBuffer();
                   await fs.writeFile(filePath, Buffer.from(buffer));
@@ -1776,7 +1838,13 @@ export default function RootLayout({
       }
 
       // Also replace logo references in component files
-      await this.replaceLogoReferencesInComponents(templatePath, logoUrl);
+      await this.replaceLogoReferencesInComponents(
+        templatePath,
+        optimizedLogoUrl
+      );
+
+      // Add CSS rules for logo sizing
+      await this.addLogoSizingCSS(templatePath);
     } catch (error) {
       // Logo replacement is optional, don't fail the entire process
     }
@@ -1788,41 +1856,77 @@ export default function RootLayout({
   ): Promise<void> {
     try {
       // Find all component files that might reference logos
-      const componentDirs = [
-        'src/components',
-        'components'
-      ];
+      const componentDirs = ["src/components", "components"];
 
       for (const componentDir of componentDirs) {
         const fullComponentPath = path.join(templatePath, componentDir);
-        
+
         try {
-          const files = await fs.readdir(fullComponentPath, { recursive: true });
-          
+          const files = await fs.readdir(fullComponentPath, {
+            recursive: true,
+          });
+
           for (const file of files) {
             const fileName = file.toString();
-            if (fileName.endsWith('.tsx') || fileName.endsWith('.jsx') || fileName.endsWith('.ts') || fileName.endsWith('.js')) {
+            if (
+              fileName.endsWith(".tsx") ||
+              fileName.endsWith(".jsx") ||
+              fileName.endsWith(".ts") ||
+              fileName.endsWith(".js")
+            ) {
               const filePath = path.join(fullComponentPath, fileName);
-              
+
               try {
-                let content = await fs.readFile(filePath, 'utf-8');
-                
+                let content = await fs.readFile(filePath, "utf-8");
+
                 // Replace common logo import patterns
                 content = content.replace(
                   /(['"`])\/[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
                   `$1${logoUrl}$1`
                 );
-                
+
                 // Replace relative logo paths
                 content = content.replace(
                   /(['"`])\.\.[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
                   `$1${logoUrl}$1`
                 );
-                
-                // Replace src attributes in img tags
+
+                // Replace src attributes in img tags and add size constraints
                 content = content.replace(
                   /src\s*=\s*(['"`])[^'"`]*logo[^'"`]*\.(svg|png|jpg|jpeg)['"`]/gi,
                   `src=$1${logoUrl}$1`
+                );
+
+                // Add size constraints to logo img tags that don't already have them
+                content = content.replace(
+                  /<img([^>]*src\s*=\s*['"`][^'"`]*\/[^'"`]*(?:logo|Logo)[^'"`]*['"`][^>]*?)(?!\s+(?:style|className|width|height))/gi,
+                  (match, imgAttrs) => {
+                    // Check if it already has size styling
+                    if (
+                      imgAttrs.includes("style=") ||
+                      imgAttrs.includes("className=") ||
+                      imgAttrs.includes("width=") ||
+                      imgAttrs.includes("height=")
+                    ) {
+                      return match; // Keep existing styling
+                    }
+                    return `<img${imgAttrs} className="h-8 w-auto max-h-12"`;
+                  }
+                );
+
+                // Also handle Next.js Image components
+                content = content.replace(
+                  /<Image([^>]*src\s*=\s*['"`][^'"`]*\/[^'"`]*(?:logo|Logo)[^'"`]*['"`][^>]*?)(?!\s+(?:style|className|width|height))/gi,
+                  (match, imgAttrs) => {
+                    if (
+                      imgAttrs.includes("width=") ||
+                      imgAttrs.includes("height=") ||
+                      imgAttrs.includes("className=")
+                    ) {
+                      return match;
+                    }
+                    return `<Image${imgAttrs} width={120} height={48} className="h-8 w-auto max-h-12"`;
+                  }
                 );
 
                 await fs.writeFile(filePath, content);
@@ -1837,6 +1941,108 @@ export default function RootLayout({
       }
     } catch (error) {
       // Logo reference replacement is optional
+    }
+  }
+
+  private optimizeLogoUrl(logoUrl: string): string {
+    try {
+      // Check if it's a Cloudinary URL
+      if (
+        logoUrl.includes("cloudinary.com") ||
+        logoUrl.includes("res.cloudinary.com")
+      ) {
+        // Add Cloudinary transformation parameters for logo sizing
+        // This will resize the logo to a maximum of 200x48 pixels while maintaining aspect ratio
+        const transformations = "w_200,h_48,c_fit,f_auto,q_auto";
+
+        // Insert transformations into Cloudinary URL
+        if (logoUrl.includes("/upload/")) {
+          return logoUrl.replace("/upload/", `/upload/${transformations}/`);
+        }
+      }
+
+      // Return original URL if not Cloudinary or transformation fails
+      return logoUrl;
+    } catch (error) {
+      // Return original URL if any error occurs
+      return logoUrl;
+    }
+  }
+
+  private async addLogoSizingCSS(templatePath: string): Promise<void> {
+    try {
+      // Common CSS file locations
+      const cssFiles = [
+        "src/app/globals.css",
+        "styles/globals.css",
+        "public/styles.css",
+        "src/styles/globals.css",
+      ];
+
+      const logoSizingCSS = `
+/* Logo sizing constraints */
+.logo,
+[class*="logo"],
+img[src*="logo" i],
+img[alt*="logo" i] {
+  max-height: 48px !important;
+  height: auto !important;
+  width: auto !important;
+  max-width: 200px !important;
+}
+
+/* Specific logo sizing for headers and navigation */
+header .logo,
+nav .logo,
+.header .logo,
+.navbar .logo {
+  max-height: 32px !important;
+}
+
+/* Footer logo sizing */
+footer .logo,
+.footer .logo {
+  max-height: 28px !important;
+}
+`;
+
+      let cssAdded = false;
+
+      for (const cssFile of cssFiles) {
+        const cssPath = path.join(templatePath, cssFile);
+
+        try {
+          // Check if CSS file exists
+          await fs.access(cssPath);
+
+          // Read current content
+          let cssContent = await fs.readFile(cssPath, "utf-8");
+
+          // Check if logo sizing CSS is already present
+          if (!cssContent.includes("Logo sizing constraints")) {
+            // Append logo sizing CSS
+            cssContent += "\n" + logoSizingCSS;
+            await fs.writeFile(cssPath, cssContent);
+            cssAdded = true;
+            break; // Only add to the first CSS file found
+          }
+        } catch (error) {
+          // CSS file doesn't exist, continue to next
+          continue;
+        }
+      }
+
+      // If no existing CSS file was found, create one
+      if (!cssAdded) {
+        const globalsCssPath = path.join(templatePath, "src/app/globals.css");
+        try {
+          await fs.writeFile(globalsCssPath, logoSizingCSS);
+        } catch (error) {
+          // Even CSS creation failed, but don't break the process
+        }
+      }
+    } catch (error) {
+      // CSS addition is optional, don't fail the process
     }
   }
 

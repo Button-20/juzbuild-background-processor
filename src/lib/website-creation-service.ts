@@ -85,9 +85,7 @@ class WebsiteCreationService {
    * Ensures consistent naming across all methods
    */
   private generateDatabaseName(websiteName: string): string {
-    return `juzbuild_${websiteName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "")}`;
+    return `juzbuild_${websiteName.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
   }
 
   /**

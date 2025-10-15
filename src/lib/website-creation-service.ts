@@ -81,6 +81,16 @@ class WebsiteCreationService {
   }
 
   /**
+   * Generate a standardized database name for a website
+   * Ensures consistent naming across all methods
+   */
+  private generateDatabaseName(websiteName: string): string {
+    return `juzbuild_${websiteName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")}`;
+  }
+
+  /**
    * Main workflow orchestrator
    */
   async createWebsite(
@@ -422,9 +432,7 @@ class WebsiteCreationService {
     options: WebsiteCreationOptions
   ): Promise<WorkflowResult> {
     try {
-      const dbName = `juzbuild_${options.websiteName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")}`;
+      const dbName = this.generateDatabaseName(options.websiteName);
 
       // Properly construct the MongoDB URI with the new database name
       const baseURI =
@@ -1317,9 +1325,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         templatePath: `/templates/${options.websiteName}`,
         repoUrl: `https://github.com/${process.env.GITHUB_USERNAME}/${options.websiteName}`,
         domain: `${options.websiteName}.onjuzbuild.com`,
-        dbName: `juzbuild_${options.websiteName
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "")}`,
+        dbName: this.generateDatabaseName(options.websiteName),
         status: "active",
         theme: options.selectedTheme,
         createdAt: new Date(),
@@ -1450,7 +1456,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
     templatePath: string,
     options: WebsiteCreationOptions
   ): Promise<void> {
-    const dbName = `juzbuild_${options.websiteName}`;
+    const dbName = this.generateDatabaseName(options.websiteName);
 
     // Properly construct the MongoDB URI with the new database name
     const baseURI =

@@ -425,29 +425,34 @@ class WebsiteCreationService {
       const dbName = `juzbuild_${options.websiteName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "")}`;
-      
+
       // Properly construct the MongoDB URI with the new database name
-      const baseURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild";
+      const baseURI =
+        process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild";
       let connectionString: string;
-      
-      if (baseURI.includes("mongodb+srv://") || baseURI.includes("mongodb://")) {
+
+      if (
+        baseURI.includes("mongodb+srv://") ||
+        baseURI.includes("mongodb://")
+      ) {
         // For MongoDB Atlas URIs, replace the database name properly
         // Pattern: mongodb+srv://user:pass@cluster.net/dbname?params
-        const uriParts = baseURI.split('/');
+        const uriParts = baseURI.split("/");
         if (uriParts.length >= 3) {
           // Replace the database name (after the last slash, before query params)
           const lastPart = uriParts[uriParts.length - 1];
           if (lastPart) {
-            const queryIndex = lastPart.indexOf('?');
-            const queryParams = queryIndex !== -1 ? lastPart.substring(queryIndex) : '';
-            
+            const queryIndex = lastPart.indexOf("?");
+            const queryParams =
+              queryIndex !== -1 ? lastPart.substring(queryIndex) : "";
+
             uriParts[uriParts.length - 1] = dbName + queryParams;
-            connectionString = uriParts.join('/');
+            connectionString = uriParts.join("/");
           } else {
-            connectionString = baseURI + '/' + dbName;
+            connectionString = baseURI + "/" + dbName;
           }
         } else {
-          connectionString = baseURI + '/' + dbName;
+          connectionString = baseURI + "/" + dbName;
         }
       } else {
         connectionString = baseURI.replace(/\/[^\/]*$/, `/${dbName}`);
@@ -1446,27 +1451,29 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
     options: WebsiteCreationOptions
   ): Promise<void> {
     const dbName = `juzbuild_${options.websiteName}`;
-    
+
     // Properly construct the MongoDB URI with the new database name
-    const baseURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild";
+    const baseURI =
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild";
     let connectionString: string;
-    
+
     if (baseURI.includes("mongodb+srv://") || baseURI.includes("mongodb://")) {
       // For MongoDB Atlas URIs, replace the database name properly
-      const uriParts = baseURI.split('/');
+      const uriParts = baseURI.split("/");
       if (uriParts.length >= 3) {
         const lastPart = uriParts[uriParts.length - 1];
         if (lastPart) {
-          const queryIndex = lastPart.indexOf('?');
-          const queryParams = queryIndex !== -1 ? lastPart.substring(queryIndex) : '';
-          
+          const queryIndex = lastPart.indexOf("?");
+          const queryParams =
+            queryIndex !== -1 ? lastPart.substring(queryIndex) : "";
+
           uriParts[uriParts.length - 1] = dbName + queryParams;
-          connectionString = uriParts.join('/');
+          connectionString = uriParts.join("/");
         } else {
-          connectionString = baseURI + '/' + dbName;
+          connectionString = baseURI + "/" + dbName;
         }
       } else {
-        connectionString = baseURI + '/' + dbName;
+        connectionString = baseURI + "/" + dbName;
       }
     } else {
       connectionString = `${baseURI}/${dbName}`;

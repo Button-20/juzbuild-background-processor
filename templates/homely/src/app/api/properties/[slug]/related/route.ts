@@ -1,5 +1,5 @@
 import connectDB from "@/lib/mongodb";
-import { PropertyService } from "@/services";
+import { PropertyService, PropertyTypeService } from "@/services";
 import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -43,11 +43,28 @@ export async function GET(
       .limit(limit)
       .toArray();
 
+    // Get property types for URL-friendly slugs
+    const propertyTypeIds: string[] = Array.from(
+      new Set(relatedProperties.map((p) => String(p.propertyType)))
+    ) as string[];
+    const propertyTypes = await Promise.all(
+      propertyTypeIds.map((id: string) => PropertyTypeService.findById(id))
+    );
+    const propertyTypeMap = new Map(
+      propertyTypes.filter(Boolean).map((pt) => [pt!._id!.toString(), pt])
+    );
+
     // Transform the data
-    const transformedProperties = relatedProperties.map((property) => ({
-      ...property,
-      _id: property._id.toString(),
-    }));
+    const transformedProperties = relatedProperties.map((property) => {
+      const propertyTypeData = propertyTypeMap.get(
+        String(property.propertyType)
+      );
+      return {
+        ...property,
+        _id: property._id.toString(),
+        propertyType: propertyTypeData?.slug || String(property.propertyType),
+      };
+    });
 
     return NextResponse.json(transformedProperties);
   } catch (error) {

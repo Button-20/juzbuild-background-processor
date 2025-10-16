@@ -1,4 +1,4 @@
-import { PropertyService } from "@/services";
+import { PropertyService, PropertyTypeService } from "@/services";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -15,10 +15,17 @@ export async function GET() {
 
     const featuredProperty = featuredProperties[0];
 
+    // Get property type data for URL-friendly slug
+    const propertyTypeData = await PropertyTypeService.findById(
+      String(featuredProperty.propertyType)
+    );
+
     // Transform the data
     const transformedProperty = {
       ...featuredProperty,
       _id: featuredProperty._id?.toString(),
+      propertyType:
+        propertyTypeData?.slug || String(featuredProperty.propertyType),
     };
 
     return NextResponse.json({

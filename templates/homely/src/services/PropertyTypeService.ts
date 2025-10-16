@@ -11,7 +11,7 @@ import { ObjectId } from "mongodb";
 export class PropertyTypeService {
   private static async getCollection() {
     const { db } = await connectDB();
-    return db.collection<PropertyType>("propertytypes");
+    return db.collection<PropertyType>("property-types");
   }
 
   // Create a new property type

@@ -468,6 +468,60 @@ class WebsiteCreationService {
       await client.connect();
       const db = client.db(dbName);
 
+      // Create property types first
+      const propertyTypeIds = new Map<string, ObjectId>();
+
+      // Generate property type icons for common types
+      const propertyTypeIcons: Record<string, string> = {
+        House: "🏠",
+        Apartment: "🏢",
+        Condo: "🏬",
+        Townhouse: "🏘️",
+        Villa: "🏛️",
+        Studio: "🏠",
+        Duplex: "🏘️",
+        Penthouse: "🏙️",
+        Loft: "🏢",
+        Cabin: "🏕️",
+        Mansion: "🏰",
+        Cottage: "🏡",
+        Bungalow: "🏠",
+        Ranch: "🐎",
+        Land: "🌍",
+        Commercial: "🏪",
+        Office: "🏢",
+        Retail: "🛍️",
+        Warehouse: "🏭",
+        Industrial: "🏭",
+      };
+
+      // Create property types from user selections
+      const userPropertyTypes = options.propertyTypes.map((typeName) => {
+        const _id = new ObjectId();
+        const slug = typeName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+        // Store ID for reference when creating sample properties
+        propertyTypeIds.set(typeName, _id);
+
+        return {
+          _id,
+          name: typeName,
+          slug,
+          description: `${typeName} properties`,
+          image: `/images/property-types/${slug}.jpg`,
+          icon: propertyTypeIcons[typeName] || "�",
+          isActive: true,
+          userId: options.userId,
+          domain: `${options.domainName}.onjuzbuild.com`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      });
+
+      // Insert property types
+      const propertyTypesCollection = db.collection("property-types");
+      await propertyTypesCollection.insertMany(userPropertyTypes);
+
       // Create collections with initial data
       const collections = [
         {
@@ -497,53 +551,130 @@ class WebsiteCreationService {
           name: "properties",
           data: [
             {
-              id: 1,
-              title: "Luxury Family Home",
-              description: "Beautiful 4-bedroom family home in prime location",
-              price: "$750,000",
-              bedrooms: 4,
-              bathrooms: 3,
-              sqft: 2500,
-              type:
-                (options.propertyTypes && options.propertyTypes[0]) || "House",
-              status: "For Sale",
-              featured: true,
-              images: ["/images/property1.jpg"],
-              address: "123 Main Street",
-              city: "Downtown",
+              _id: new ObjectId(),
+              name: "Luxury Family Home",
+              slug: "luxury-family-home",
+              description:
+                "Beautiful 4-bedroom family home in prime location with modern amenities and spacious living areas.",
+              location: "123 Main Street, Downtown",
+              price: 750000,
+              currency: "USD",
+              propertyType:
+                propertyTypeIds
+                  .get(options.propertyTypes[0] || "House")
+                  ?.toString() || new ObjectId().toString(),
+              status: "for-sale",
+              beds: 4,
+              baths: 3,
+              area: 2500,
+              images: [
+                {
+                  src: "/images/properties/luxury-family-home-1.jpg",
+                  alt: "Luxury Family Home - Main View",
+                  isMain: true,
+                },
+              ],
+              amenities: ["Garden", "Garage", "Modern Kitchen", "Fireplace"],
+              features: ["Family Room", "Master Suite", "Walk-in Closet"],
+              coordinates: {
+                lat: 40.7128,
+                lng: -74.006,
+              },
+              isActive: true,
+              isFeatured: true,
+              userId: options.userId,
+              websiteId: undefined,
+              domain: `${options.domainName}.onjuzbuild.com`,
               createdAt: new Date(),
+              updatedAt: new Date(),
             },
             {
-              id: 2,
-              title: "Modern Downtown Condo",
-              description: "Contemporary 2-bedroom condo with city views",
-              price: "$450,000",
-              bedrooms: 2,
-              bathrooms: 2,
-              sqft: 1200,
-              type: "Condo",
-              status: "For Sale",
-              featured: true,
-              images: ["/images/property2.jpg"],
-              address: "456 Downtown Ave",
-              city: "City Center",
+              _id: new ObjectId(),
+              name: "Modern Downtown Condo",
+              slug: "modern-downtown-condo",
+              description:
+                "Contemporary 2-bedroom condo with stunning city views and premium finishes throughout.",
+              location: "456 Downtown Ave, City Center",
+              price: 450000,
+              currency: "USD",
+              propertyType:
+                propertyTypeIds
+                  .get(
+                    options.propertyTypes[1] ||
+                      options.propertyTypes[0] ||
+                      "Condo"
+                  )
+                  ?.toString() || new ObjectId().toString(),
+              status: "for-sale",
+              beds: 2,
+              baths: 2,
+              area: 1200,
+              images: [
+                {
+                  src: "/images/properties/modern-downtown-condo-1.jpg",
+                  alt: "Modern Downtown Condo - Living Area",
+                  isMain: true,
+                },
+              ],
+              amenities: ["City Views", "Balcony", "Gym Access", "Concierge"],
+              features: [
+                "Open Floor Plan",
+                "Floor-to-Ceiling Windows",
+                "In-Unit Laundry",
+              ],
+              coordinates: {
+                lat: 40.7589,
+                lng: -73.9851,
+              },
+              isActive: true,
+              isFeatured: true,
+              userId: options.userId,
+              websiteId: undefined,
+              domain: `${options.domainName}.onjuzbuild.com`,
               createdAt: new Date(),
+              updatedAt: new Date(),
             },
             {
-              id: 3,
-              title: "Cozy Starter Home",
-              description: "Perfect first home with garden and garage",
-              price: "$325,000",
-              bedrooms: 3,
-              bathrooms: 2,
-              sqft: 1800,
-              type: "House",
-              status: "For Sale",
-              featured: false,
-              images: ["/images/property3.jpg"],
-              address: "789 Residential St",
-              city: "Suburbs",
+              _id: new ObjectId(),
+              name: "Cozy Starter Home",
+              slug: "cozy-starter-home",
+              description:
+                "Perfect first home with beautiful garden and attached garage in a quiet neighborhood.",
+              location: "789 Residential St, Suburbs",
+              price: 325000,
+              currency: "USD",
+              propertyType:
+                propertyTypeIds
+                  .get(options.propertyTypes[0] || "House")
+                  ?.toString() || new ObjectId().toString(),
+              status: "for-sale",
+              beds: 3,
+              baths: 2,
+              area: 1800,
+              images: [
+                {
+                  src: "/images/properties/cozy-starter-home-1.jpg",
+                  alt: "Cozy Starter Home - Front View",
+                  isMain: true,
+                },
+              ],
+              amenities: ["Garden", "Attached Garage", "Patio", "Storage"],
+              features: [
+                "Quiet Neighborhood",
+                "Updated Kitchen",
+                "Hardwood Floors",
+              ],
+              coordinates: {
+                lat: 40.6892,
+                lng: -74.0445,
+              },
+              isActive: true,
+              isFeatured: false,
+              userId: options.userId,
+              websiteId: undefined,
+              domain: `${options.domainName}.onjuzbuild.com`,
               createdAt: new Date(),
+              updatedAt: new Date(),
             },
           ],
         },

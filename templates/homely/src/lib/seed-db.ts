@@ -10,32 +10,31 @@ const llm = new ChatOpenAI({
 
 async function generateSyntheticProperties(): Promise<Property[]> {
   const prompt = `Generate a list of 15 diverse real estate properties with the following details for each property:
-    - Name
-    - Location
-    - Price
-    - Property Type (e.g., House, Apartment, Office)
-    - Status (e.g., For Sale, For Rent, Sold, Rented)
-    - Bedrooms
-    - Bathroomsx
-    - Area (in square meters)
-    - Description
-    - Image URLs (at least 2 per property)
-    - Amenities (e.g., Pool, Gym, Parking)
-    - Features (e.g., Sea View, Garden, Balcony)
-    - Coordinates (latitude and longitude)
-    - Currency (GHS, USD, EUR, GBP, CAD, AUD)
-    - IsActive (true or false)
-    - IsFeatured (true or false)
-    - CreatedAt (current date and time)
-    - UpdatedAt (current date and time)
-    - ReadTime (in minutes)
-    - Views (0)
-    - IsPublished (true or false)
-    - PublishedAt (current date and time)
-    - Author (your name)
-    - AuthorImage (your profile picture URL)
-    - Tags (at least 3)
-    Ensure the data is realistic and varied. Format the output as a JSON array.
+    - _id (optional MongoDB ObjectId string)
+    - name (property name)
+    - slug (URL-friendly version of name)
+    - description (detailed property description)
+    - location (full address)
+    - price (numeric price value)
+    - currency (GHS, USD, EUR, GBP, CAD, AUD)
+    - propertyType (ObjectId string - use placeholder like "house-type-id")
+    - status (for-sale, for-rent, sold, rented)
+    - beds (number of bedrooms)
+    - baths (number of bathrooms) 
+    - area (area in square feet)
+    - images (array of objects with src, alt, isMain properties)
+    - amenities (array of amenity strings)
+    - features (array of feature strings)
+    - coordinates (object with lat/lng properties)
+    - isActive (boolean, default true)
+    - isFeatured (boolean)
+    - userId (required string - use placeholder "user-id-placeholder")
+    - websiteId (optional string)
+    - domain (required string - use placeholder "example.com")
+    - createdAt (current date)
+    - updatedAt (current date)
+    
+    Ensure the data matches the updated property schema and is realistic and varied. Format the output as a JSON array.
     
     ${propertyParser.getFormatInstructions()}
     `;
@@ -61,7 +60,7 @@ async function createPropertySummary(property: Property): Promise<string> {
   });
 }
 
-export async function seedDatabase() {
+export async function seedDatabase(userId: string, domain: string) {
   try {
     const { db } = await connectDB();
     console.log("Connected to MongoDB");
@@ -75,7 +74,14 @@ export async function seedDatabase() {
     const recordsWithSummaries = await Promise.all(
       syntheticProperties.map(async (property) => ({
         pageContent: await createPropertySummary(property),
-        metadata: { ...property },
+        metadata: {
+          ...property,
+          userId:
+            property.userId === "user-id-placeholder"
+              ? userId
+              : property.userId,
+          domain: property.domain === "example.com" ? domain : property.domain,
+        },
       }))
     );
 
@@ -99,7 +105,8 @@ export async function seedDatabase() {
   }
 }
 
-  seedDatabase().then(() => {
-    console.log("Seeding process finished.");
-    process.exit(0);
-  });
+// Example usage - replace with actual userId and domain when calling
+// seedDatabase("user-id-here", "example.com").then(() => {
+//   console.log("Seeding process finished.");
+//   process.exit(0);
+// });

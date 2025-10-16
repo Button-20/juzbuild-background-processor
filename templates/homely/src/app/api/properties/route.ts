@@ -50,11 +50,11 @@ export async function GET(request: NextRequest) {
     });
 
     // Get property types for population
-    const propertyTypeIds = [
-      ...new Set(properties.map((p) => p.propertyType.toString())),
-    ];
+    const propertyTypeIds: string[] = Array.from(
+      new Set(properties.map((p) => String(p.propertyType)))
+    ) as string[];
     const propertyTypes = await Promise.all(
-      propertyTypeIds.map((id) => PropertyTypeService.findById(id))
+      propertyTypeIds.map((id: string) => PropertyTypeService.findById(id))
     );
     const propertyTypeMap = new Map(
       propertyTypes.filter(Boolean).map((pt) => [pt!._id!.toString(), pt])
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Transform the data to match the existing PropertyHomes type
     const transformedProperties = properties.map((property) => {
       const propertyTypeData = propertyTypeMap.get(
-        property.propertyType.toString()
+        String(property.propertyType)
       );
       return {
         _id: property._id!.toString(),
@@ -73,8 +73,7 @@ export async function GET(request: NextRequest) {
         location: property.location,
         price: property.price,
         currency: property.currency || "USD",
-        propertyType:
-          propertyTypeData?.slug || property.propertyType.toString(),
+        propertyType: propertyTypeData?.slug || String(property.propertyType),
         status: property.status,
         beds: property.beds,
         baths: property.baths,

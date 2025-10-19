@@ -1531,29 +1531,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       // Admin directory might not exist, continue
     }
 
-    // Remove conflicting route directories that might cause parallel page issues
-    const conflictingRoutes = [
-      path.join(templatePath, "src", "app", "(site)", "properties"),
-      path.join(templatePath, "src", "app", "(site)", "about"),
-      path.join(templatePath, "src", "app", "(site)", "contact"),
-      path.join(templatePath, "src", "app", "(site)", "services"),
-    ];
-
-    for (const routePath of conflictingRoutes) {
-      try {
-        await fs.rm(routePath, { recursive: true, force: true });
-      } catch (error) {
-        // Route might not exist, continue
-      }
-    }
-
-    // Remove the entire (site) route group if it exists to avoid conflicts
-    const siteRoutePath = path.join(templatePath, "src", "app", "(site)");
-    try {
-      await fs.rm(siteRoutePath, { recursive: true, force: true });
-    } catch (error) {
-      // Site route group might not exist
-    }
+    // Note: We preserve the (site) route group and all its contents
+    // The (site) folder contains the public-facing routes and must be preserved
+    // so it can be pushed to GitHub as part of the generated template.
 
     // Fix layout.tsx syntax issues
     const layoutPath = path.join(templatePath, "src", "app", "layout.tsx");
@@ -2392,17 +2372,21 @@ footer .logo,
             .replace(/\\/g, "/");
 
           if (item.isDirectory()) {
-            // Skip node_modules and .git directories
-            if (
-              item.name !== "node_modules" &&
-              item.name !== ".git" &&
-              !item.name.startsWith(".")
-            ) {
+            // Only skip node_modules and .git directories
+            // Include all other directories, including those with special characters like (site)
+            if (item.name !== "node_modules" && item.name !== ".git") {
               await scanDirectory(fullPath, basePath);
             }
           } else {
-            // Skip certain file types
-            if (!item.name.endsWith(".log") && !item.name.startsWith(".")) {
+            // Include all files except logs and common build artifacts
+            // Be more selective about what we exclude to ensure we don't miss important files
+            if (
+              !item.name.endsWith(".log") &&
+              item.name !== ".DS_Store" &&
+              item.name !== "Thumbs.db" &&
+              !item.name.startsWith(".env") &&
+              item.name !== ".gitignore"
+            ) {
               files.push({ fullPath, relativePath });
             }
           }
@@ -2413,6 +2397,31 @@ footer .logo,
     }
 
     await scanDirectory(templatePath, templatePath);
+
+    // Log the first few files to help with debugging
+    console.log(`📁 Found ${files.length} files to upload to GitHub:`);
+    files.slice(0, 10).forEach((file, index) => {
+      console.log(`  ${index + 1}. ${file.relativePath}`);
+    });
+    if (files.length > 10) {
+      console.log(`  ... and ${files.length - 10} more files`);
+    }
+
+    // Specifically check for (site) folder contents
+    const siteFiles = files.filter((file) =>
+      file.relativePath.includes("(site)")
+    );
+    if (siteFiles.length > 0) {
+      console.log(`✅ Found ${siteFiles.length} files in (site) folder:`);
+      siteFiles.slice(0, 5).forEach((file) => {
+        console.log(`  - ${file.relativePath}`);
+      });
+    } else {
+      console.log(
+        `⚠️  No files found in (site) folder - this may indicate an issue`
+      );
+    }
+
     return files;
   }
 

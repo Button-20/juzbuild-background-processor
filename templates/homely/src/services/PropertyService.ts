@@ -101,7 +101,9 @@ export class PropertyService {
 
     // Apply filters
     if (validatedFilters.propertyType) {
-      query.propertyType = new ObjectId(validatedFilters.propertyType);
+      // Check if propertyType is stored as string or ObjectId in the database
+      // For now, assume it's stored as string (based on the sample data provided)
+      query.propertyType = validatedFilters.propertyType;
     }
     if (validatedFilters.status) {
       query.status = validatedFilters.status;
@@ -179,7 +181,7 @@ export class PropertyService {
     const collection = await this.getCollection();
     const properties = await collection
       .find({
-        propertyType: new ObjectId(propertyTypeId),
+        propertyType: propertyTypeId, // Use string instead of ObjectId
         isActive: true,
       })
       .sort({ createdAt: -1 })

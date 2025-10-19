@@ -883,13 +883,14 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
 *Built with Juzbuild - Professional Real Estate Websites*
 `;
       // First, add the README
-      await octokit.repos.createOrUpdateFileContents({
-        owner: githubUsername,
-        repo: repoName,
-        path: "README.md",
-        message: "Initial commit: Add project README",
-        content: Buffer.from(readmeContent).toString("base64"),
-      });
+      await this.safeCreateOrUpdateFile(
+        octokit,
+        githubUsername,
+        repoName,
+        "README.md",
+        readmeContent,
+        "Initial commit: Add project README"
+      );
 
       // Now push all template files to the repository
       console.log("Pushing template files to GitHub repository...");
@@ -2236,6 +2237,59 @@ footer .logo,
     }
   }
 
+  /**
+   * Safely create or update a file in GitHub repository
+   * Handles SHA requirement for existing files
+   */
+  private async safeCreateOrUpdateFile(
+    octokit: any,
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string
+  ): Promise<any> {
+    try {
+      // First, try to get the existing file to get its SHA
+      let existingFileSha: string | undefined;
+
+      try {
+        const existingFile = await octokit.repos.getContent({
+          owner,
+          repo,
+          path,
+        });
+
+        // If file exists, get its SHA
+        if (existingFile.data && !Array.isArray(existingFile.data)) {
+          existingFileSha = existingFile.data.sha;
+        }
+      } catch (error) {
+        // File doesn't exist, which is fine for creation
+        existingFileSha = undefined;
+      }
+
+      // Create or update the file with SHA if it exists
+      const requestData: any = {
+        owner,
+        repo,
+        path,
+        message,
+        content: Buffer.from(content).toString("base64"),
+      };
+
+      // Add SHA if file exists
+      if (existingFileSha) {
+        requestData.sha = existingFileSha;
+      }
+
+      return await octokit.repos.createOrUpdateFileContents(requestData);
+    } catch (error) {
+      console.error(`Error creating/updating file ${path}:`, error);
+      throw error;
+    }
+  }
+
   private async pushTemplateFiles(
     octokit: any,
     owner: string,
@@ -2258,19 +2312,19 @@ footer .logo,
         for (const file of batch) {
           try {
             const content = await fs.readFile(file.fullPath, "utf8");
-            const base64Content = Buffer.from(content).toString("base64");
 
             console.log(
               `Pushing file: ${file.relativePath} (${content.length} bytes)`
             );
 
-            const result = await octokit.repos.createOrUpdateFileContents({
+            await this.safeCreateOrUpdateFile(
+              octokit,
               owner,
               repo,
-              path: file.relativePath,
-              message: `Add ${file.relativePath}`,
-              content: base64Content,
-            });
+              file.relativePath,
+              content,
+              `Add ${file.relativePath}`
+            );
 
             console.log(`✅ Successfully pushed: ${file.relativePath}`);
 
@@ -2297,16 +2351,15 @@ footer .logo,
       try {
         console.log("Adding deployment trigger commit...");
         const deployTriggerContent = `# ${repo}\n\nThis Next.js website was automatically generated and deployed by JuzBuild.\n\nDeployment triggered at: ${new Date().toISOString()}\n`;
-        const base64Content =
-          Buffer.from(deployTriggerContent).toString("base64");
 
-        await octokit.repos.createOrUpdateFileContents({
+        await this.safeCreateOrUpdateFile(
+          octokit,
           owner,
           repo,
-          path: "DEPLOYMENT.md",
-          message: `🚀 Trigger Vercel deployment - ${new Date().toISOString()}`,
-          content: base64Content,
-        });
+          "DEPLOYMENT.md",
+          deployTriggerContent,
+          `🚀 Trigger Vercel deployment - ${new Date().toISOString()}`
+        );
 
         console.log("✅ Deployment trigger commit added");
       } catch (error) {
@@ -2401,17 +2454,14 @@ This file was created to trigger automatic deployment on Vercel.
 *This file is part of the automated deployment process by JuzBuild*
 `;
 
-      const base64Content = Buffer.from(deploymentTriggerContent).toString(
-        "base64"
+      await this.safeCreateOrUpdateFile(
+        octokit,
+        githubUsername,
+        repoName,
+        "VERCEL_DEPLOY.md",
+        deploymentTriggerContent,
+        `🚀 Trigger Vercel deployment - ${timestamp}`
       );
-
-      await octokit.repos.createOrUpdateFileContents({
-        owner: githubUsername,
-        repo: repoName,
-        path: "VERCEL_DEPLOY.md",
-        message: `🚀 Trigger Vercel deployment - ${timestamp}`,
-        content: base64Content,
-      });
     } catch (error) {
       // Silently handle deployment trigger errors
     }

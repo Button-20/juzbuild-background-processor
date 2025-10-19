@@ -23,7 +23,7 @@ export const PropertySchema = z.object({
   location: z.string().min(1, "Location is required").trim(),
   price: z.number().min(0, "Price must be positive"),
   currency: z.enum(["GHS", "USD", "EUR", "GBP", "CAD", "AUD"]).default("GHS"),
-  propertyType: z.instanceof(ObjectId), // ObjectId reference
+  propertyType: z.string(), // String reference to ObjectId
   status: z
     .enum(["for-sale", "for-rent", "sold", "rented"])
     .default("for-sale"),

@@ -2458,6 +2458,57 @@ footer .logo,
     return files;
   }
 
+  private async triggerVercelDeploymentViaPush(
+    repoName: string
+  ): Promise<void> {
+    try {
+      // Wait for Vercel-GitHub connection to be established
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      const githubToken = process.env.GITHUB_TOKEN;
+      const githubUsername = process.env.GITHUB_USERNAME || "juzbuild";
+
+      if (!githubToken) {
+        return;
+      }
+
+      const octokit = new Octokit({ auth: githubToken });
+
+      // Create a deployment trigger file
+      const timestamp = new Date().toISOString();
+      const deploymentTriggerContent = `# Vercel Deployment Trigger
+
+This file was created to trigger automatic deployment on Vercel.
+
+**Deployment Details:**
+- Website: ${repoName}
+- Triggered at: ${timestamp}
+- Trigger reason: Ensuring Vercel deployment after project connection
+
+## Automatic Deployment Process
+
+1. ✅ GitHub repository created with Next.js files
+2. ✅ Vercel project created and connected to GitHub
+3. ✅ This trigger file added to force deployment
+4. 🚀 Vercel should now automatically deploy the website
+
+---
+*This file is part of the automated deployment process by JuzBuild*
+`;
+
+      await this.safeCreateOrUpdateFile(
+        octokit,
+        githubUsername,
+        repoName,
+        "VERCEL_DEPLOY.md",
+        deploymentTriggerContent,
+        `🚀 Trigger Vercel deployment - ${timestamp}`
+      );
+    } catch (error) {
+      // Silently handle deployment trigger errors
+    }
+  }
+
   async cleanupTemplate(websiteName: string): Promise<void> {
     const templatePath = path.join(process.cwd(), "templates", websiteName);
     try {

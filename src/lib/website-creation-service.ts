@@ -475,26 +475,34 @@ class WebsiteCreationService {
 
       // Generate property type icons for common types
       const propertyTypeIcons: Record<string, string> = {
-        House: "🏠",
-        Apartment: "🏢",
-        Condo: "🏬",
-        Townhouse: "🏘️",
-        Villa: "🏛️",
-        Studio: "🏠",
-        Duplex: "🏘️",
-        Penthouse: "🏙️",
-        Loft: "🏢",
-        Cabin: "🏕️",
-        Mansion: "🏰",
-        Cottage: "🏡",
-        Bungalow: "🏠",
-        Ranch: "🐎",
-        Land: "🌍",
+        Houses: "🏠",
+        Apartments: "🏢",
+        Condos: "🏬",
+        Townhouses: "🏘️",
+        Lands: "🌍",
         Commercial: "🏪",
-        Office: "🏢",
-        Retail: "🛍️",
-        Warehouse: "🏭",
-        Industrial: "🏭",
+        Rentals: "🏚️",
+        "Luxury Homes": "🏛️",
+      };
+
+      // Generate property type images for custom types
+      const propertyTypeImages: Record<string, string> = {
+        Houses:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760940915/house_mic0ne.jpg",
+        Apartments:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760941571/freepik__generate-a-high-quality-background-sized-image-of-__51374_joitmh.png",
+        Condos:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760941867/freepik__the-style-is-candid-image-photography-with-natural__51375_thscsq.png",
+        Townhouses:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760943197/freepik__the-style-is-candid-image-photography-with-natural__51376_fropgl.png",
+        Lands:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760943604/73ad8688-ed02-4641-aaa3-2a9f88736ecb_ie15de.jpg",
+        Commercial:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760943753/d693266c-6352-4818-bb54-bead3b9eb86c_urzsci.jpg",
+        Rentals:
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760943870/36728946-3323-4407-ac5f-39eb72e49a5b_a45amg.jpg",
+        "Luxury Homes":
+          "https://res.cloudinary.com/dho8jec7k/image/upload/v1760944265/luxury_homes_os9otk.jpg",
       };
 
       // Create property types from user selections
@@ -510,7 +518,7 @@ class WebsiteCreationService {
           name: typeName,
           slug,
           description: `${typeName} properties`,
-          image: `/images/property-types/${slug}.jpg`,
+          image: propertyTypeImages[typeName] || "",
           icon: propertyTypeIcons[typeName] || "�",
           isActive: true,
           userId: options.userId,
@@ -571,7 +579,7 @@ class WebsiteCreationService {
               area: 2500,
               images: [
                 {
-                  src: "/images/properties/luxury-family-home-1.jpg",
+                  src: "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938451/image-3_pbgbet.jpg",
                   alt: "Luxury Family Home - Main View",
                   isMain: true,
                 },
@@ -613,7 +621,7 @@ class WebsiteCreationService {
               area: 1200,
               images: [
                 {
-                  src: "/images/properties/modern-downtown-condo-1.jpg",
+                  src: "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938446/image-2_btqiku.jpg",
                   alt: "Modern Downtown Condo - Living Area",
                   isMain: true,
                 },
@@ -655,7 +663,7 @@ class WebsiteCreationService {
               area: 1800,
               images: [
                 {
-                  src: "/images/properties/cozy-starter-home-1.jpg",
+                  src: "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938448/image-4_jhxupa.jpg",
                   alt: "Cozy Starter Home - Front View",
                   isMain: true,
                 },
@@ -2448,57 +2456,6 @@ footer .logo,
     }
 
     return files;
-  }
-
-  private async triggerVercelDeploymentViaPush(
-    repoName: string
-  ): Promise<void> {
-    try {
-      // Wait for Vercel-GitHub connection to be established
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      const githubToken = process.env.GITHUB_TOKEN;
-      const githubUsername = process.env.GITHUB_USERNAME || "juzbuild";
-
-      if (!githubToken) {
-        return;
-      }
-
-      const octokit = new Octokit({ auth: githubToken });
-
-      // Create a deployment trigger file
-      const timestamp = new Date().toISOString();
-      const deploymentTriggerContent = `# Vercel Deployment Trigger
-
-This file was created to trigger automatic deployment on Vercel.
-
-**Deployment Details:**
-- Website: ${repoName}
-- Triggered at: ${timestamp}
-- Trigger reason: Ensuring Vercel deployment after project connection
-
-## Automatic Deployment Process
-
-1. ✅ GitHub repository created with Next.js files
-2. ✅ Vercel project created and connected to GitHub
-3. ✅ This trigger file added to force deployment
-4. 🚀 Vercel should now automatically deploy the website
-
----
-*This file is part of the automated deployment process by JuzBuild*
-`;
-
-      await this.safeCreateOrUpdateFile(
-        octokit,
-        githubUsername,
-        repoName,
-        "VERCEL_DEPLOY.md",
-        deploymentTriggerContent,
-        `🚀 Trigger Vercel deployment - ${timestamp}`
-      );
-    } catch (error) {
-      // Silently handle deployment trigger errors
-    }
   }
 
   async cleanupTemplate(websiteName: string): Promise<void> {

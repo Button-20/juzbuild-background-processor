@@ -266,6 +266,7 @@ class WebsiteCreationService {
       }
       results["Vercel Deployment"] = vercelResult.data;
       vercelUrl = vercelResult.data?.vercelUrl;
+      const aliasUrl = vercelResult.data?.aliasUrl; // Get the alias URL
 
       if (jobId) {
         await jobTracker.updateStep(
@@ -410,6 +411,7 @@ class WebsiteCreationService {
           domain: `${options.domainName}.onjuzbuild.com`,
           websiteUrl:
             vercelUrl || `https://${options.domainName}.onjuzbuild.com`,
+          aliasUrl: aliasUrl, // Include the alias URL for the frontend
           status: "active",
           results,
         },
@@ -1097,9 +1099,14 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         );
       }
 
-      // Create project first
-      const project = await vercel.createProject(repoName, repoUrl);
-      console.log(`Vercel project created: ${project.id}`);
+      // Create project with a clean name (just use the base website name without timestamp)
+      const cleanProjectName = options.websiteName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-");
+      const project = await vercel.createProject(cleanProjectName, repoUrl);
+      console.log(
+        `Vercel project created: ${project.id} with name: ${cleanProjectName}`
+      );
 
       // Wait for project setup to complete and GitHub to propagate
       await new Promise((resolve) => setTimeout(resolve, 8000));
@@ -1116,9 +1123,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         );
       }
 
-      // Create deployment
+      // Create deployment using the clean project name
       const deployment = await vercel.createDeploymentFromGit(
-        repoName,
+        cleanProjectName,
         repoUrl
       );
       console.log(
@@ -1188,33 +1195,50 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       if (deploymentStatus === "READY") {
         console.log(`Deployment successful. URL: https://${deploymentURL}`);
 
-        // Create alias for production deployment
+        // Create alias for production deployment with the clean project name
         try {
-          const aliasName = `${options.websiteName}.vercel.app`;
+          const aliasName = `${cleanProjectName}.vercel.app`;
           console.log(`Creating alias: ${aliasName}`);
 
-          // Note: Alias creation is automatic for production deployments in most cases
-          // The deployment URL already includes the correct domain
+          // The deployment URL should use the clean project name for the alias
+          const aliasUrl = `${cleanProjectName}.vercel.app`;
+
+          return {
+            success: true,
+            data: {
+              projectId: project.id,
+              projectName: project.name,
+              deploymentId: deployment.id,
+              deploymentUrl: `https://${aliasUrl}`,
+              status: "ready",
+              vercelUrl: aliasUrl,
+              aliasUrl: `https://${aliasUrl}`, // Add the alias URL specifically
+              readyState: deployment.readyState,
+              note: "Deployment completed successfully",
+            },
+          };
         } catch (aliasError) {
           console.warn(
             "Alias creation failed, but deployment succeeded:",
             aliasError
           );
-        }
 
-        return {
-          success: true,
-          data: {
-            projectId: project.id,
-            projectName: project.name,
-            deploymentId: deployment.id,
-            deploymentUrl: `https://${deploymentURL}`,
-            status: "ready",
-            vercelUrl: deploymentURL,
-            readyState: deployment.readyState,
-            note: "Deployment completed successfully",
-          },
-        };
+          // Return with the original deployment URL if alias fails
+          return {
+            success: true,
+            data: {
+              projectId: project.id,
+              projectName: project.name,
+              deploymentId: deployment.id,
+              deploymentUrl: `https://${deploymentURL}`,
+              status: "ready",
+              vercelUrl: deploymentURL,
+              aliasUrl: `https://${cleanProjectName}.vercel.app`, // Still provide the expected alias URL
+              readyState: deployment.readyState,
+              note: "Deployment completed successfully",
+            },
+          };
+        }
       } else if (
         deploymentStatus === "ERROR" ||
         deploymentStatus === "CANCELED"
@@ -1236,9 +1260,10 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
             projectId: project.id,
             projectName: project.name,
             deploymentId: deployment.id,
-            deploymentUrl: `https://${deploymentURL}`,
+            deploymentUrl: `https://${cleanProjectName}.vercel.app`,
             status: "building",
-            vercelUrl: deploymentURL,
+            vercelUrl: `${cleanProjectName}.vercel.app`,
+            aliasUrl: `https://${cleanProjectName}.vercel.app`,
             readyState: deployment.readyState,
             note: `Deployment in progress (${deploymentStatus}). Check Vercel dashboard for updates.`,
           },

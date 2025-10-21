@@ -97,7 +97,7 @@ const Testimonial = () => {
       <section className="bg-dark relative overflow-hidden" id="testimonial">
         <div className="absolute right-0">
           <Image
-            src="/images/testimonial/Vector.png"
+            src="https://res.cloudinary.com/dho8jec7k/image/upload/v1760939759/Vector_vwlrjp.png"
             alt="victor"
             width={700}
             height={1039}
@@ -136,7 +136,7 @@ const Testimonial = () => {
     >
       <div className="absolute right-0 top-0">
         <Image
-          src="/images/testimonial/Vector.png"
+          src="https://res.cloudinary.com/dho8jec7k/image/upload/v1760939759/Vector_vwlrjp.png"
           alt="victor"
           width={700}
           height={1039}
@@ -164,7 +164,7 @@ const Testimonial = () => {
           }}
         >
           <CarouselContent>
-            {testimonials.map((item, index) => (
+            {testimonials.map((item: TestimonialType, index: number) => (
               <CarouselItem
                 key={item._id || index}
                 className="mt-4 sm:mt-6 lg:mt-9"

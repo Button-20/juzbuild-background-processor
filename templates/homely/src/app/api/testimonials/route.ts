@@ -17,7 +17,8 @@ export async function GET() {
           role: "Property Investor",
           message:
             "Outstanding service from start to finish! The team helped me find the perfect investment property and guided me through every step of the process. Their market knowledge is exceptional.",
-          image: "/images/testimonial/johns.jpg",
+          image:
+            "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939579/smiths_shdf7a.jpg",
           rating: 5,
           isActive: true,
           order: 1,
@@ -27,7 +28,8 @@ export async function GET() {
           role: "First-time Buyer",
           message:
             "As a first-time homebuyer, I was nervous about the process. But the team made everything so smooth and explained everything clearly. I couldn't be happier with my new home!",
-          image: "/images/testimonial/smiths.jpg",
+          image:
+            "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939605/mark_thpuxz.jpg",
           rating: 5,
           isActive: true,
           order: 2,
@@ -38,7 +40,8 @@ export async function GET() {
           company: "Chen Properties",
           message:
             "Professional, reliable, and results-driven. They've helped us sell multiple high-value properties quickly and at great prices. Highly recommend their services.",
-          image: "/images/users/mark.jpg",
+          image:
+            "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939580/johns_s8iho8.jpg",
           rating: 5,
           isActive: true,
           order: 3,

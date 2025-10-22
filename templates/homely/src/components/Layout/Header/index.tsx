@@ -1,5 +1,6 @@
 "use client";
 import { navLinks } from "@/app/api/navlink";
+import { getEmail, getPhoneNumber } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -86,7 +87,7 @@ const Header: React.FC = () => {
             </button>
             <div className={`hidden md:block`}>
               <Link
-                href="tel:+233-550-653-404"
+                href={`tel:${getPhoneNumber()}`}
                 className={`text-base text-inherit flex items-center gap-2 border-r pr-6 ${
                   isHomepage
                     ? sticky
@@ -96,7 +97,7 @@ const Header: React.FC = () => {
                 }`}
               >
                 <Icon icon={"ph:phone-bold"} width={24} height={24} />
-                +233-550-653-404
+                {getPhoneNumber()}
               </Link>
             </div>
             <div>
@@ -174,16 +175,16 @@ const Header: React.FC = () => {
               Contact
             </p>
             <Link
-              href="#"
+              href={`mailto:${getEmail()}`}
               className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
             >
-              hello@homely.com
+              {getEmail()}
             </Link>
             <Link
-              href="tel:+233-550-653-404"
+              href={`tel:${getPhoneNumber()}`}
               className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
             >
-              +233-550-653-404{" "}
+              {getPhoneNumber()}{" "}
             </Link>
           </div>
         </div>

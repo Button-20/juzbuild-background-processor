@@ -58,6 +58,19 @@ interface WebsiteCreationOptions {
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
+
+  // Contact Information
+  phoneNumber?: string;
+  supportEmail?: string;
+  whatsappNumber?: string;
+  address?: string;
+
+  // Social Media Links
+  facebookUrl?: string;
+  twitterUrl?: string;
+  instagramUrl?: string;
+  linkedinUrl?: string;
+  youtubeUrl?: string;
 }
 
 interface WorkflowResult {
@@ -1876,13 +1889,11 @@ export default function ${componentName}Page() {
       // Package.json might not exist or be malformed
     }
 
-    // Update site configuration with user's branding
-    const configFiles = [
-      "src/config/site.ts",
-      "src/lib/config.ts",
-      "next.config.js",
-      "next.config.ts",
-    ];
+    // Update next.config.ts with comprehensive user data
+    await this.updateNextConfigFile(templatePath, options);
+
+    // Update other site configuration files with user's branding
+    const configFiles = ["src/config/site.ts", "src/lib/config.ts"];
 
     for (const configFile of configFiles) {
       const configPath = path.join(templatePath, configFile);
@@ -2247,6 +2258,126 @@ footer .logo,
       }
     } catch (error) {
       // CSS addition is optional, don't fail the process
+    }
+  }
+
+  /**
+   * Update next.config.ts with user's comprehensive configuration
+   */
+  private async updateNextConfigFile(
+    templatePath: string,
+    options: WebsiteCreationOptions
+  ): Promise<void> {
+    const nextConfigPath = path.join(templatePath, "next.config.ts");
+
+    try {
+      const websiteUrl = `https://${options.websiteName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-")}.vercel.app`;
+
+      // Generate the complete next.config.ts content
+      const configContent = `import type { NextConfig } from "next";
+
+// All Configuration - MongoDB, App Settings, and Site Configuration
+const appConfig = {
+  // Database Configuration
+  database: {
+    mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/${this.generateDatabaseName(
+      options.websiteName
+    )}",
+  },
+  // App Configuration
+  app: {
+    url: "${websiteUrl}",
+  },
+  // Site Configuration - Contact Information, Social Links, Company Info
+  contact: {
+    phone: "${options.phoneNumber || options.whatsappNumber || ""}",
+    email: "${options.userEmail}",
+    supportEmail: "${options.supportEmail || options.userEmail}",
+    whatsappNumber: "${options.whatsappNumber || ""}",
+    address: "${options.address || ""}",
+  },
+  social: {
+    facebook: "${options.facebookUrl || ""}",
+    twitter: "${options.twitterUrl || ""}",
+    instagram: "${options.instagramUrl || ""}",
+    linkedin: "${options.linkedinUrl || ""}",
+    youtube: "${options.youtubeUrl || ""}",
+  },
+  company: {
+    name: "${options.companyName}",
+    tagline: "${options.tagline || "Find Your Dream Home"}",
+  },
+};
+
+const nextConfig: NextConfig = {
+  env: {
+    // Database Configuration
+    MONGODB_URI: appConfig.database.mongoUri,
+    // App Configuration
+    NEXT_PUBLIC_APP_URL: appConfig.app.url,
+    // Make site config available as environment variables
+    NEXT_PUBLIC_PHONE_NUMBER: appConfig.contact.phone,
+    NEXT_PUBLIC_EMAIL: appConfig.contact.email,
+    NEXT_PUBLIC_SUPPORT_EMAIL: appConfig.contact.supportEmail,
+    NEXT_PUBLIC_WHATSAPP_NUMBER: appConfig.contact.whatsappNumber,
+    NEXT_PUBLIC_ADDRESS: appConfig.contact.address,
+    NEXT_PUBLIC_FACEBOOK_URL: appConfig.social.facebook,
+    NEXT_PUBLIC_TWITTER_URL: appConfig.social.twitter,
+    NEXT_PUBLIC_INSTAGRAM_URL: appConfig.social.instagram,
+    NEXT_PUBLIC_LINKEDIN_URL: appConfig.social.linkedin,
+    NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
+    NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
+    NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
+  },
+  experimental: {
+    turbo: {
+      rules: {
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
+        },
+      },
+    },
+  },
+  webpack: (config: any) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+    };
+    return config;
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3000",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
+        pathname: "/api/**",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
+    ],
+  },
+};
+
+export default nextConfig;
+`;
+
+      await fs.writeFile(nextConfigPath, configContent);
+      console.log(`✅ Updated next.config.ts with user configuration`);
+    } catch (error) {
+      console.error("Error updating next.config.ts:", error);
+      // Don't fail the entire process if config update fails
     }
   }
 

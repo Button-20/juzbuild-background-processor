@@ -1,3 +1,4 @@
+import ContactInfo from "@/components/shared/ContactInfo";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -74,9 +75,9 @@ const TermsOfService = () => {
 
           <h2>7. Contact Information</h2>
           <p>
-            For questions about these Terms of Service, please contact us at
-            legal@homelyrealestate.com
+            For questions about these Terms of Service, please contact us at:
           </p>
+          <ContactInfo />
         </div>
       </div>
     </section>

@@ -3,13 +3,15 @@
 import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
 
+import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
+
 interface ChatWidgetsProps {
   whatsappNumber?: string;
   whatsappMessage?: string;
 }
 
 export default function ChatWidgets({
-  whatsappNumber = "+233123456789", // Replace with actual WhatsApp number
+  whatsappNumber = getWhatsAppNumber(), // Get from site configuration
   whatsappMessage = "Hi! I'm interested in your real estate properties.",
 }: ChatWidgetsProps) {
   const [showAiChat, setShowAiChat] = useState(false);
@@ -156,7 +158,7 @@ export default function ChatWidgets({
       message.includes("phone") ||
       message.includes("email")
     ) {
-      return "You can contact us at jasonaddy51@gmail.com or click the WhatsApp button to chat with us directly! We're here to help you find your perfect property.";
+      return `You can contact us at ${getSupportEmail()} or click the WhatsApp button to chat with us directly! We're here to help you find your perfect property.`;
     }
 
     if (

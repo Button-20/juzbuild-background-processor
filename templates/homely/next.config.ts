@@ -1,6 +1,57 @@
 import type { NextConfig } from "next";
 
+// All Configuration - MongoDB, App Settings, and Site Configuration
+const appConfig = {
+  // Database Configuration
+  database: {
+    mongoUri:
+      "mongodb+srv://admin:fE7yahiULxkkIjlN@clusterv.m0hmur3.mongodb.net/RealEstateAgency",
+  },
+  // App Configuration
+  app: {
+    url: "http://localhost:3000",
+  },
+  // Site Configuration - Contact Information, Social Links, Company Info
+  contact: {
+    phone: "+233-550-653-404",
+    email: "hello@homely.com",
+    supportEmail: "support@homely.com",
+    whatsappNumber: "+233123456789",
+    address: "Accra, Ghana",
+  },
+  social: {
+    facebook: "https://facebook.com/homelyrealestate",
+    twitter: "https://twitter.com/homelyrealestate",
+    instagram: "https://instagram.com/homelyrealestate",
+    linkedin: "https://linkedin.com/company/homelyrealestate",
+    youtube: "",
+  },
+  company: {
+    name: "Homely Real Estate",
+    tagline: "Find Your Dream Home",
+  },
+};
+
 const nextConfig: NextConfig = {
+  env: {
+    // Database Configuration
+    MONGODB_URI: appConfig.database.mongoUri,
+    // App Configuration
+    NEXT_PUBLIC_APP_URL: appConfig.app.url,
+    // Make site config available as environment variables
+    NEXT_PUBLIC_PHONE_NUMBER: appConfig.contact.phone,
+    NEXT_PUBLIC_EMAIL: appConfig.contact.email,
+    NEXT_PUBLIC_SUPPORT_EMAIL: appConfig.contact.supportEmail,
+    NEXT_PUBLIC_WHATSAPP_NUMBER: appConfig.contact.whatsappNumber,
+    NEXT_PUBLIC_ADDRESS: appConfig.contact.address,
+    NEXT_PUBLIC_FACEBOOK_URL: appConfig.social.facebook,
+    NEXT_PUBLIC_TWITTER_URL: appConfig.social.twitter,
+    NEXT_PUBLIC_INSTAGRAM_URL: appConfig.social.instagram,
+    NEXT_PUBLIC_LINKEDIN_URL: appConfig.social.linkedin,
+    NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
+    NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
+    NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
+  },
   experimental: {
     turbo: {
       rules: {
@@ -21,20 +72,12 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
         protocol: "http",
-        hostname: "localhost",
-        port: "3000",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ui-avatars.com",
-        pathname: "/api/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
+        hostname: "**",
       },
     ],
   },

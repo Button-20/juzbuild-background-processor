@@ -1,3 +1,4 @@
+import ContactInfo from "@/components/shared/ContactInfo";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -94,11 +95,7 @@ const PrivacyPolicy = () => {
             If you have questions about this Privacy Policy, please contact us
             at:
           </p>
-          <p>
-            Email: privacy@homelyrealestate.com
-            <br />
-            Address: 123 Real Estate Ave, Property City, PC 12345
-          </p>
+          <ContactInfo />
         </div>
       </div>
     </section>

@@ -1,8 +1,50 @@
-import { FooterLinks } from "@/app/api/footerlinks";
+"use client";
+
+import {
+  getFacebookUrl,
+  getInstagramUrl,
+  getTwitterUrl,
+} from "@/lib/siteConfig";
+import { footerlinks } from "@/types/footerlinks";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const Footer = () => {
+  const [footerLinks, setFooterLinks] = useState<footerlinks[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFooterLinks = async () => {
+      try {
+        const response = await fetch("/api/footer-links");
+        const data = await response.json();
+
+        if (data.success) {
+          setFooterLinks(data.footerLinks);
+        } else {
+          throw new Error("Failed to fetch footer links");
+        }
+      } catch (error) {
+        console.error("Error fetching footer links:", error);
+        // Fallback to default links
+        setFooterLinks([
+          { label: "Villas", href: "/properties/villa" },
+          { label: "Apartments", href: "/properties/apartment" },
+          { label: "Offices", href: "/properties/office" },
+          { label: "All Properties", href: "/properties" },
+          { label: "Blog", href: "/blogs" },
+          { label: "Contact Us", href: "/contactus" },
+          { label: "About Us", href: "/#about" },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFooterLinks();
+  }, []);
+
   return (
     <footer className="relative z-10 bg-dark">
       <div className="container mx-auto max-w-8xl pt-14 px-4 sm:px-6 lg:px-0">
@@ -28,7 +70,7 @@ const Footer = () => {
           </div>
           <div className="flex items-center gap-4 sm:gap-6 w-full lg:w-auto justify-center lg:justify-start">
             <Link
-              href="https://twitter.com/homelyrealestate"
+              href={getTwitterUrl()}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -40,7 +82,7 @@ const Footer = () => {
               />
             </Link>
             <Link
-              href="https://facebook.com/homelyrealestate"
+              href={getFacebookUrl()}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -52,7 +94,7 @@ const Footer = () => {
               />
             </Link>
             <Link
-              href="https://instagram.com/homelyrealestate"
+              href={getInstagramUrl()}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -80,30 +122,48 @@ const Footer = () => {
             </div>
             <div className="lg:col-span-3 md:col-span-4 sm:col-span-6 col-span-6">
               <div className="flex flex-col gap-3 sm:gap-4 w-fit">
-                {FooterLinks.slice(0, 4).map((item, index) => (
-                  <div key={index}>
-                    <Link
-                      href={item.href}
-                      className="text-white/40 text-sm sm:text-base hover:text-white duration-300"
-                    >
-                      {item.label}
-                    </Link>
-                  </div>
-                ))}
+                {!isLoading &&
+                  footerLinks.slice(0, 4).map((item, index) => (
+                    <div key={index}>
+                      <Link
+                        href={item.href}
+                        className="text-white/40 text-sm sm:text-base hover:text-white duration-300"
+                      >
+                        {item.label}
+                      </Link>
+                    </div>
+                  ))}
+                {isLoading && (
+                  <>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-16"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-20"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-14"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-24"></div>
+                  </>
+                )}
               </div>
             </div>
             <div className="lg:col-span-2 md:col-span-12 sm:col-span-6 col-span-6">
               <div className="flex flex-col gap-3 sm:gap-4 w-fit">
-                {FooterLinks.slice(4, 8).map((item, index) => (
-                  <div key={index}>
-                    <Link
-                      href={item.href}
-                      className="text-white/40 text-sm sm:text-base hover:text-white duration-300"
-                    >
-                      {item.label}
-                    </Link>
-                  </div>
-                ))}
+                {!isLoading &&
+                  footerLinks.slice(4, 8).map((item, index) => (
+                    <div key={index}>
+                      <Link
+                        href={item.href}
+                        className="text-white/40 text-sm sm:text-base hover:text-white duration-300"
+                      >
+                        {item.label}
+                      </Link>
+                    </div>
+                  ))}
+                {isLoading && (
+                  <>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-12"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-20"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-16"></div>
+                    <div className="h-5 bg-white/10 rounded animate-pulse w-18"></div>
+                  </>
+                )}
               </div>
             </div>
           </div>

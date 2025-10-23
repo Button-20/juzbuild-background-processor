@@ -5,8 +5,7 @@ export interface Blog {
   excerpt: string;
   content: string;
   coverImage: string;
-  author: string;
-  authorImage: string;
+  authorId: string;
   tags: string[];
   isPublished: boolean;
   views: number;
@@ -21,8 +20,7 @@ export interface BlogFormData {
   excerpt: string;
   content: string;
   coverImage: string;
-  author: string;
-  authorImage: string;
+  authorId: string;
   tags: string[];
   isPublished: boolean;
 }

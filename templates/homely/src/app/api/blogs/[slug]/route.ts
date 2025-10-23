@@ -48,8 +48,9 @@ export async function GET(
       slug: rb.slug,
       excerpt: rb.excerpt,
       coverImage: rb.coverImage,
-      author: rb.author,
-      authorImage: rb.authorImage,
+      authorId: rb.authorId,
+      author: rb.author, // Populated from authorId
+      authorImage: rb.authorImage, // Populated from authorId
       tags: rb.tags,
       isPublished: rb.isPublished,
       publishedAt: rb.publishedAt,

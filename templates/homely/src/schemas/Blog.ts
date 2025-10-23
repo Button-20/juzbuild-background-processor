@@ -21,8 +21,7 @@ export const BlogSchema = z.object({
     .max(500, "Excerpt cannot exceed 500 characters"),
   content: z.string().min(1, "Content is required"),
   coverImage: z.string().min(1, "Cover image is required"),
-  author: z.string().min(1, "Author is required").trim(),
-  authorImage: z.string().default(""),
+  authorId: z.string().min(1, "Author ID is required").trim(),
   tags: z.array(z.string().trim().toLowerCase()).default([]),
   isPublished: z.boolean().default(false),
   publishedAt: z.date().nullable().default(null),
@@ -49,7 +48,6 @@ export const UpdateBlogSchema = BlogSchema.omit({
 export const BlogFiltersSchema = z.object({
   isPublished: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
-  author: z.string().optional(),
   limit: z.number().min(1).max(100).default(10),
   skip: z.number().min(0).default(0),
 });

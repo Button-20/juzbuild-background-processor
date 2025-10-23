@@ -16,6 +16,65 @@ export class BlogService {
     return db.collection<Blog>("blogs");
   }
 
+  private static async getAuthorCollection() {
+    const { db } = await connectDB();
+    return db.collection("authors");
+  }
+
+  // Helper method to populate author information from authorId
+  private static async populateAuthor(authorId: string) {
+    try {
+      const authorCollection = await this.getAuthorCollection();
+      const author = await authorCollection.findOne({ 
+        _id: new ObjectId(authorId) 
+      });
+      
+      if (author) {
+        return {
+          author: author.name,
+          authorImage: author.image || "",
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching author:", error);
+    }
+    
+    // Fallback if author not found
+    return {
+      author: "Unknown Author",
+      authorImage: "",
+    };
+  }
+
+  // Helper method to populate authors for multiple blogs
+  private static async populateAuthorsForBlogs(blogs: Blog[]) {
+    const authorIds = [...new Set(blogs.map(blog => blog.authorId))];
+    const authorCollection = await this.getAuthorCollection();
+    
+    // Batch fetch all authors
+    const authors = await authorCollection.find({ 
+      _id: { $in: authorIds.map(id => new ObjectId(id)) } 
+    }).toArray();
+    
+    // Create lookup map
+    const authorMap = new Map();
+    authors.forEach(author => {
+      authorMap.set(author._id.toString(), {
+        author: author.name,
+        authorImage: author.image || "",
+      });
+    });
+    
+    // Populate blogs with author info
+    return blogs.map(blog => ({
+      ...blog,
+      ...(authorMap.get(blog.authorId) || {
+        author: "Unknown Author",
+        authorImage: "",
+      }),
+    }));
+  }
+
   // Create a new blog post
   static async create(data: CreateBlogInput): Promise<Blog> {
     const validatedData = CreateBlogSchema.parse(data);
@@ -60,7 +119,16 @@ export class BlogService {
   static async findBySlug(slug: string): Promise<Blog | null> {
     const collection = await this.getCollection();
     const blog = await collection.findOne({ slug, isPublished: true });
-    return blog || null;
+    
+    if (!blog) return null;
+    
+    // Populate author information
+    const authorInfo = await this.populateAuthor(blog.authorId);
+    
+    return {
+      ...blog,
+      ...authorInfo,
+    };
   }
 
   // Update blog
@@ -117,9 +185,8 @@ export class BlogService {
     if (validatedFilters.isPublished !== undefined) {
       query.isPublished = validatedFilters.isPublished;
     }
-    if (validatedFilters.author) {
-      query.author = { $regex: validatedFilters.author, $options: "i" };
-    }
+    // Author filtering removed - now using authorId instead of author name
+    // TODO: Implement author lookup if needed
     if (validatedFilters.tags && validatedFilters.tags.length > 0) {
       query.tags = { $in: validatedFilters.tags };
     }
@@ -144,8 +211,11 @@ export class BlogService {
       collection.countDocuments(query),
     ]);
 
+    // Populate author information for all blogs
+    const blogsWithAuthors = await this.populateAuthorsForBlogs(blogs);
+
     return {
-      blogs,
+      blogs: blogsWithAuthors,
       total,
     };
   }
@@ -172,7 +242,10 @@ export class BlogService {
       .sort({ publishedAt: -1 })
       .limit(limit)
       .toArray();
-    return blogs;
+    
+    // Populate author information for all blogs
+    const blogsWithAuthors = await this.populateAuthorsForBlogs(blogs);
+    return blogsWithAuthors;
   }
 
   // Increment view count

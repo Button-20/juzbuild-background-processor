@@ -25,10 +25,10 @@ export class BlogService {
   private static async populateAuthor(authorId: string) {
     try {
       const authorCollection = await this.getAuthorCollection();
-      const author = await authorCollection.findOne({ 
-        _id: new ObjectId(authorId) 
+      const author = await authorCollection.findOne({
+        _id: new ObjectId(authorId),
       });
-      
+
       if (author) {
         return {
           author: author.name,
@@ -38,7 +38,7 @@ export class BlogService {
     } catch (error) {
       console.error("Error fetching author:", error);
     }
-    
+
     // Fallback if author not found
     return {
       author: "Unknown Author",
@@ -48,25 +48,27 @@ export class BlogService {
 
   // Helper method to populate authors for multiple blogs
   private static async populateAuthorsForBlogs(blogs: Blog[]) {
-    const authorIds = [...new Set(blogs.map(blog => blog.authorId))];
+    const authorIds = [...new Set(blogs.map((blog) => blog.authorId))];
     const authorCollection = await this.getAuthorCollection();
-    
+
     // Batch fetch all authors
-    const authors = await authorCollection.find({ 
-      _id: { $in: authorIds.map(id => new ObjectId(id)) } 
-    }).toArray();
-    
+    const authors = await authorCollection
+      .find({
+        _id: { $in: authorIds.map((id) => new ObjectId(id)) },
+      })
+      .toArray();
+
     // Create lookup map
     const authorMap = new Map();
-    authors.forEach(author => {
+    authors.forEach((author) => {
       authorMap.set(author._id.toString(), {
         author: author.name,
         authorImage: author.image || "",
       });
     });
-    
+
     // Populate blogs with author info
-    return blogs.map(blog => ({
+    return blogs.map((blog) => ({
       ...blog,
       ...(authorMap.get(blog.authorId) || {
         author: "Unknown Author",
@@ -119,12 +121,12 @@ export class BlogService {
   static async findBySlug(slug: string): Promise<Blog | null> {
     const collection = await this.getCollection();
     const blog = await collection.findOne({ slug, isPublished: true });
-    
+
     if (!blog) return null;
-    
+
     // Populate author information
     const authorInfo = await this.populateAuthor(blog.authorId);
-    
+
     return {
       ...blog,
       ...authorInfo,
@@ -242,7 +244,7 @@ export class BlogService {
       .sort({ publishedAt: -1 })
       .limit(limit)
       .toArray();
-    
+
     // Populate author information for all blogs
     const blogsWithAuthors = await this.populateAuthorsForBlogs(blogs);
     return blogsWithAuthors;

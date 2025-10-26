@@ -1,4 +1,5 @@
 import { EmailService } from "@/lib/email";
+import { LeadService } from "@/lib/lead";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get domain from request headers
+    const domain = request.headers.get("host") || "localhost";
+
     // Prepare data for lead creation and email sending
     const leadData = {
       name,
@@ -61,11 +65,13 @@ export async function POST(request: NextRequest) {
       source: propertyName
         ? ("property_inquiry" as const)
         : ("contact_form" as const),
+      domain,
     };
 
     // Create lead and send emails
     try {
       // Create lead in database
+      await LeadService.createLead(leadData);
 
       // Send confirmation email to enquirer and notification email to owner
       await EmailService.sendEmails(leadData);

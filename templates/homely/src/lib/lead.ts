@@ -13,6 +13,7 @@ export interface LeadData {
   propertyName?: string;
   propertyUrl?: string;
   source: "contact_form" | "property_inquiry";
+  domain: string;
 }
 
 export interface Lead {
@@ -28,6 +29,7 @@ export interface Lead {
   propertyName?: string;
   propertyUrl?: string;
   source: "contact_form" | "property_inquiry";
+  domain: string;
   priority: "high" | "medium" | "low";
   status: "new" | "contacted" | "qualified" | "converted" | "closed";
   createdAt: Date;

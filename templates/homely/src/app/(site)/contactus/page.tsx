@@ -10,6 +10,10 @@ interface FormData {
   name: string;
   phone: string;
   email: string;
+  company: string;
+  subject: string;
+  budget: string;
+  timeline: string;
   message: string;
 }
 
@@ -18,6 +22,10 @@ export default function ContactUs() {
     name: "",
     phone: "",
     email: "",
+    company: "",
+    subject: "",
+    budget: "",
+    timeline: "",
     message: "",
   };
 
@@ -29,7 +37,9 @@ export default function ContactUs() {
   }>({ type: null, message: "" });
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -107,14 +117,14 @@ export default function ContactUs() {
       </div>
       {/* form */}
       <div className="border border-black/10 dark:border-white/10 rounded-2xl p-4 shadow-xl dark:shadow-white/10">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-12">
-          <div className="relative w-fit">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-12 min-h-[600px]">
+          <div className="relative w-full lg:w-fit shrink-0 h-[500px] lg:h-auto">
             <Image
               src="https://res.cloudinary.com/dho8jec7k/image/upload/v1760938661/contactUs_h5xh6w.jpg"
               alt="wall"
               width={497}
-              height={535}
-              className="rounded-2xl brightness-50 h-full"
+              height={630}
+              className="rounded-2xl brightness-50 w-full lg:w-[497px] h-full min-h-[500px] lg:min-h-full object-cover"
               unoptimized={true}
             />
             <div className="absolute top-6 left-6 lg:top-12 lg:left-12 flex flex-col gap-2">
@@ -151,7 +161,7 @@ export default function ContactUs() {
               </div>
             </div>
           </div>
-          <div className="flex-1/2">
+          <div className="flex-1">
             {/* Status Messages */}
             {submitStatus.type && (
               <div
@@ -216,6 +226,62 @@ export default function ContactUs() {
                   disabled={isSubmitting}
                   className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <input
+                    type="text"
+                    name="company"
+                    id="company"
+                    value={formData.company}
+                    onChange={handleInputChange}
+                    placeholder="Company (optional)"
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <select
+                    name="subject"
+                    id="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select inquiry type*</option>
+                    <option value="property_inquiry">Property Inquiry</option>
+                    <option value="buy_property">Looking to Buy</option>
+                    <option value="sell_property">Looking to Sell</option>
+                    <option value="rent_property">Looking to Rent</option>
+                    <option value="investment">Investment Opportunities</option>
+                    <option value="valuation">Property Valuation</option>
+                    <option value="general">General Information</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <input
+                    type="text"
+                    name="budget"
+                    id="budget"
+                    value={formData.budget}
+                    onChange={handleInputChange}
+                    placeholder="Budget range (e.g., $100k - $200k)"
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <input
+                    type="text"
+                    name="timeline"
+                    id="timeline"
+                    value={formData.timeline}
+                    onChange={handleInputChange}
+                    placeholder="Timeline (e.g., 3-6 months)"
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
                 <textarea
                   rows={8}
                   cols={50}

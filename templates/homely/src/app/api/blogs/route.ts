@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
       excerpt: blog.excerpt,
       coverImage: blog.coverImage,
       authorId: blog.authorId,
-      author: blog.author, // Populated from authorId
-      authorImage: blog.authorImage, // Populated from authorId
+      author: (blog as any).author, // Populated from authorId
+      authorImage: (blog as any).authorImage, // Populated from authorId
       tags: blog.tags,
       isPublished: blog.isPublished,
       publishedAt: blog.publishedAt,

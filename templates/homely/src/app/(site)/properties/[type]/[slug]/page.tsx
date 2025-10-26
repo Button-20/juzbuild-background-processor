@@ -40,6 +40,8 @@ export default function PropertyDetails() {
     name: "",
     email: "",
     phone: "",
+    budget: "",
+    timeline: "",
     message: "",
   });
   const [contactLoading, setContactLoading] = useState(false);
@@ -168,9 +170,12 @@ export default function PropertyDetails() {
           name: contactForm.name,
           email: contactForm.email,
           phone: contactForm.phone,
+          budget: contactForm.budget,
+          timeline: contactForm.timeline,
           message: contactForm.message,
           propertyName: property?.name,
           propertyUrl: window.location.href,
+          subject: "property_inquiry", // Automatically set for property inquiries
         }),
       });
 
@@ -182,6 +187,8 @@ export default function PropertyDetails() {
           name: "",
           email: "",
           phone: "",
+          budget: "",
+          timeline: "",
           message: "",
         });
 
@@ -635,6 +642,28 @@ export default function PropertyDetails() {
                     name="phone"
                     placeholder="Your Phone"
                     value={contactForm.phone}
+                    onChange={handleContactChange}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    name="budget"
+                    placeholder="Budget Range (e.g., $100k - $200k)"
+                    value={contactForm.budget}
+                    onChange={handleContactChange}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    name="timeline"
+                    placeholder="Timeline (e.g., 3-6 months)"
+                    value={contactForm.timeline}
                     onChange={handleContactChange}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                   />

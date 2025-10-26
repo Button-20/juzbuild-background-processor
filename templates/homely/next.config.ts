@@ -5,16 +5,23 @@ const appConfig = {
   // Database Configuration
   database: {
     mongoUri:
-      "mongodb+srv://admin:fE7yahiULxkkIjlN@clusterv.m0hmur3.mongodb.net/RealEstateAgency",
+      "mongodb+srv://admin:fE7yahiULxkkIjlN@clusterv.m0hmur3.mongodb.net/juzbuild_premierrealty",
   },
   // App Configuration
   app: {
     url: "http://localhost:3000",
   },
+  // Email Configuration - Resend API
+  email: {
+    resendApiKey:
+      process.env.RESEND_API_KEY || "re_AnxzKjTV_GsrUKh9zLQ7AdxjhRSo4hVoA",
+    fromEmail: "onboarding@resend.dev",
+    fromName: "Acme",
+  },
   // Site Configuration - Contact Information, Social Links, Company Info
   contact: {
     phone: "+233-550-653-404",
-    email: "hello@homely.com",
+    email: "icanvassolutions@gmail.com",
     supportEmail: "support@homely.com",
     whatsappNumber: "+233123456789",
     address: "Accra, Ghana",
@@ -38,6 +45,10 @@ const nextConfig: NextConfig = {
     MONGODB_URI: appConfig.database.mongoUri,
     // App Configuration
     NEXT_PUBLIC_APP_URL: appConfig.app.url,
+    // Email Configuration
+    RESEND_API_KEY: appConfig.email.resendApiKey,
+    NEXT_PUBLIC_FROM_EMAIL: appConfig.email.fromEmail,
+    NEXT_PUBLIC_FROM_NAME: appConfig.email.fromName,
     // Make site config available as environment variables
     NEXT_PUBLIC_PHONE_NUMBER: appConfig.contact.phone,
     NEXT_PUBLIC_EMAIL: appConfig.contact.email,

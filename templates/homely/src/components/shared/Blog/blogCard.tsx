@@ -81,14 +81,14 @@ const BlogCard: FC<{ blog: Blog }> = ({ blog }) => {
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
               <Image
                 src={authorImage || "/images/users/alkesh.jpg"}
-                alt={author}
+                alt={author || "Author"}
                 width={32}
                 height={32}
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-dark dark:text-white truncate">
-                  {author}
+                  {author || "Author"}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {formatDate(createdAt)}

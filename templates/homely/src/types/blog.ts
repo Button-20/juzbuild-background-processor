@@ -6,6 +6,8 @@ export interface Blog {
   content: string;
   coverImage: string;
   authorId: string;
+  author?: string;
+  authorImage?: string;
   tags: string[];
   isPublished: boolean;
   views: number;

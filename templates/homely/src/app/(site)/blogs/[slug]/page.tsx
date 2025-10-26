@@ -17,7 +17,8 @@ async function getBlogBySlug(slug: string): Promise<Blog | null> {
       return null;
     }
 
-    // Transform the data to match the Blog type
+    // The BlogService already returns the populated blog with author info
+    // Just ensure proper type casting and string conversion
     return {
       _id: blog._id?.toString() || "",
       title: blog.title,
@@ -25,8 +26,9 @@ async function getBlogBySlug(slug: string): Promise<Blog | null> {
       content: blog.content,
       excerpt: blog.excerpt || "",
       coverImage: blog.coverImage || "",
-      author: blog.author || "Blog Author",
-      authorImage: blog.authorImage || "",
+      authorId: blog.authorId || "",
+      author: (blog as any).author || "Blog Author",
+      authorImage: (blog as any).authorImage || "",
       tags: blog.tags || [],
       isPublished: blog.isPublished,
       views: blog.views || 0,
@@ -72,6 +74,7 @@ async function getRelatedBlogs(
       content: blog.content,
       excerpt: blog.excerpt || "",
       coverImage: blog.coverImage || "",
+      authorId: blog.authorId || "",
       author: blog.author || "Blog Author",
       authorImage: blog.authorImage || "",
       tags: blog.tags || [],
@@ -189,7 +192,7 @@ export default async function BlogPost({
               <div className="flex items-center gap-3 sm:gap-4">
                 <Image
                   src={blog.authorImage || "/images/users/alkesh.jpg"}
-                  alt={blog.author}
+                  alt={blog.author || "Blog Author"}
                   className="bg-no-repeat bg-contain inline-block rounded-full !w-10 !h-10 sm:!w-12 sm:!h-12 object-cover"
                   width={48}
                   height={48}
@@ -198,7 +201,7 @@ export default async function BlogPost({
                 />
                 <div>
                   <span className="text-sm sm:text-base text-dark dark:text-white">
-                    {blog.author}
+                    {blog.author || "Blog Author"}
                   </span>
                 </div>
               </div>

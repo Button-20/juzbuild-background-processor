@@ -19,6 +19,7 @@ async function getBlogs(): Promise<Blog[]> {
       content: blog.content,
       excerpt: blog.excerpt || "",
       coverImage: blog.coverImage || "",
+      authorId: blog.authorId || "",
       author: blog.author || "Blog Author",
       authorImage: blog.authorImage || "",
       tags: blog.tags || [],

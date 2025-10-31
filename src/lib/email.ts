@@ -1,15 +1,7 @@
-// Simplified email service for background processor
-import nodemailer from "nodemailer";
+// Email service using Resend API
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || "587"),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.JUZBUILD_RESEND_API_KEY);
 
 export async function sendWebsiteCreationEmail(websiteData: {
   userEmail: string;
@@ -256,18 +248,26 @@ export async function sendWebsiteCreationEmail(websiteData: {
 </body>
 </html>`;
 
-  const mailOptions = {
-    from: `Juzbuild <${process.env.EMAIL_USER}>`,
-    to: websiteData.userEmail,
-    subject: `🎉 Your Website is Live! - ${websiteData.companyName}`,
-    html: emailHtml,
-  };
+  const fromEmail =
+    process.env.JUZBUILD_RESEND_FROM_EMAIL || "info@juzbuild.com";
 
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    await transporter.sendMail(mailOptions);
-  } else {
-    console.log(`Email would be sent to: ${websiteData.userEmail}`);
-    console.log(`Subject: ${mailOptions.subject}`);
-    console.log("Email service not configured - skipping actual send");
+  try {
+    const result = await resend.emails.send({
+      from: `Juzbuild <${fromEmail}>`,
+      to: [websiteData.userEmail],
+      subject: `🎉 Your Website is Live! - ${websiteData.companyName}`,
+      html: emailHtml,
+    });
+
+    if (result.error) {
+      console.error("❌ Resend API error:", result.error);
+      throw new Error(`Resend error: ${result.error.message}`);
+    }
+
+    console.log(`✅ Email sent successfully to ${websiteData.userEmail}`);
+    console.log(`📧 Email ID: ${result.data?.id}`);
+  } catch (error) {
+    console.error("Failed to send email via Resend:", error);
+    throw error;
   }
 }

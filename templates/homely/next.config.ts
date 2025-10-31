@@ -15,8 +15,8 @@ const appConfig = {
   email: {
     resendApiKey:
       process.env.RESEND_API_KEY || "re_AnxzKjTV_GsrUKh9zLQ7AdxjhRSo4hVoA",
-    fromEmail: "onboarding@resend.dev",
-    fromName: "Acme",
+    fromEmail: process.env.NEXT_PUBLIC_FROM_EMAIL || "",
+    fromName:   process.env.NEXT_PUBLIC_FROM_NAME || "Homely Real Estate",
   },
   // Site Configuration - Contact Information, Social Links, Company Info
   contact: {

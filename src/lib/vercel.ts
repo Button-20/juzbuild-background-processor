@@ -41,12 +41,14 @@ class VercelAPI {
    * @param name - Project name
    * @param gitUrl - Git repository URL
    * @param framework - Framework preset (nextjs, react, etc.)
+   * @param envVars - Optional environment variables to configure
    * @returns Promise with project details
    */
   async createProject(
     name: string,
     gitUrl: string,
-    framework: string = "nextjs"
+    framework: string = "nextjs",
+    envVars?: Record<string, string>
   ): Promise<VercelProject> {
     const repoPath = gitUrl.replace("https://github.com/", "");
 
@@ -65,6 +67,11 @@ class VercelAPI {
       },
     });
 
+    // Configure environment variables after project creation
+    if (envVars && Object.keys(envVars).length > 0) {
+      await this.addEnvironmentVariables(name, envVars);
+    }
+
     return {
       id: result.id!,
       name: result.name!,
@@ -77,21 +84,80 @@ class VercelAPI {
   }
 
   /**
+   * Add environment variables to a Vercel project
+   * @param projectName - Project name or ID
+   * @param envVars - Environment variables to add
+   * @returns Promise with result
+   */
+  async addEnvironmentVariables(
+    projectName: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    const envVarArray = Object.entries(envVars).map(([key, value]) => {
+      // Determine if the variable should be encrypted (sensitive data)
+      const isEncrypted = [
+        "MONGODB_URI",
+        "RESEND_API_KEY",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET",
+        "CLOUDINARY_CLOUD_NAME",
+      ].includes(key);
+
+      // Determine target environments
+      const target = key.startsWith("NEXT_PUBLIC_")
+        ? ["production", "preview", "development"]
+        : ["production", "preview"];
+
+      return {
+        key,
+        value,
+        target: target as ("production" | "preview" | "development")[],
+        type: isEncrypted ? ("encrypted" as const) : ("plain" as const),
+      };
+    });
+
+    try {
+      await this.vercel.projects.createProjectEnv({
+        idOrName: projectName,
+        upsert: "true",
+        requestBody: envVarArray,
+      });
+
+      console.log(
+        `✓ Successfully configured ${envVarArray.length} environment variables for project: ${projectName}`
+      );
+    } catch (error) {
+      console.error(
+        `Failed to add environment variables to project ${projectName}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Create project and trigger deployment using official Vercel SDK
    * @param projectName - Name of the project
    * @param gitUrl - Git repository URL
+   * @param envVars - Optional environment variables to configure
    * @returns Promise with project and deployment info
    */
   async createProjectAndDeploy(
     projectName: string,
-    gitUrl: string
+    gitUrl: string,
+    envVars?: Record<string, string>
   ): Promise<{
     project: VercelProject;
     deploymentUrl: string;
     deployment?: VercelDeployment;
   }> {
-    // Create the project first
-    const project = await this.createProject(projectName, gitUrl);
+    // Create the project first (with environment variables)
+    const project = await this.createProject(
+      projectName,
+      gitUrl,
+      "nextjs",
+      envVars
+    );
 
     // Wait for project setup to complete
     await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -285,6 +351,137 @@ class VercelAPI {
     } catch (error) {
       console.warn(`Failed to assign alias ${aliasName}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Add a custom domain to a Vercel project
+   * @param projectName - Project name or ID
+   * @param domainName - Custom domain name (e.g., "example.com" or "www.example.com")
+   * @returns Promise with domain details including verification info
+   */
+  async addProjectDomain(
+    projectName: string,
+    domainName: string
+  ): Promise<{
+    name: string;
+    verified: boolean;
+    verification?: Array<{
+      type: string;
+      domain: string;
+      value: string;
+      reason: string;
+    }>;
+  }> {
+    try {
+      console.log(`Adding domain ${domainName} to project ${projectName}...`);
+
+      const addDomainResponse = await this.vercel.projects.addProjectDomain({
+        idOrName: projectName,
+        requestBody: {
+          name: domainName,
+        },
+      });
+
+      console.log(`✓ Domain added: ${addDomainResponse.name}`);
+
+      const result: {
+        name: string;
+        verified: boolean;
+        verification?: Array<{
+          type: string;
+          domain: string;
+          value: string;
+          reason: string;
+        }>;
+      } = {
+        name: addDomainResponse.name!,
+        verified: addDomainResponse.verified || false,
+      };
+
+      // Include verification details if domain is not yet verified
+      if (addDomainResponse.verification && !addDomainResponse.verified) {
+        result.verification = addDomainResponse.verification as Array<{
+          type: string;
+          domain: string;
+          value: string;
+          reason: string;
+        }>;
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`Failed to add domain ${domainName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get domain configuration details from Vercel
+   * @param projectName - Project name or ID
+   * @param domainName - Domain name to check
+   * @returns Promise with domain configuration including CNAME target
+   */
+  async getDomainConfig(
+    projectName: string,
+    domainName: string
+  ): Promise<{
+    verified: boolean;
+    cnameTarget?: string;
+    verification?: Array<{
+      type: string;
+      domain: string;
+      value: string;
+    }>;
+  }> {
+    try {
+      const result = await this.vercel.projects.getProjectDomain({
+        idOrName: projectName,
+        domain: domainName,
+      });
+
+      const config: {
+        verified: boolean;
+        cnameTarget?: string;
+        verification?: Array<{
+          type: string;
+          domain: string;
+          value: string;
+        }>;
+      } = {
+        verified: result.verified || false,
+      };
+
+      // Get CNAME target from verification records
+      if (result.verification) {
+        config.verification = result.verification as Array<{
+          type: string;
+          domain: string;
+          value: string;
+        }>;
+
+        // Find CNAME record
+        const cnameRecord = (result.verification as any[]).find(
+          (v: any) => v.type === "CNAME"
+        );
+        if (cnameRecord) {
+          config.cnameTarget = cnameRecord.value;
+        }
+      }
+
+      // Vercel's default CNAME target is cname.vercel-dns.com
+      if (!config.cnameTarget) {
+        config.cnameTarget = "cname.vercel-dns.com";
+      }
+
+      return config;
+    } catch (error) {
+      console.error(`Failed to get domain config for ${domainName}:`, error);
+      // Return default CNAME target
+      return {
+        verified: false,
+        cnameTarget: "cname.vercel-dns.com",
+      };
     }
   }
 }

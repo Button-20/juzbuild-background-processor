@@ -102,6 +102,102 @@ class WebsiteCreationService {
   }
 
   /**
+   * Prepare environment variables for Vercel deployment
+   * Maps user configuration to environment variables needed by the template
+   */
+  private prepareEnvironmentVariables(
+    options: WebsiteCreationOptions
+  ): Record<string, string> {
+    const dbName = this.generateDatabaseName(options.websiteName);
+    const baseURI =
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild";
+
+    // Construct the MongoDB URI for this specific website
+    let mongodbUri: string;
+    if (baseURI.includes("mongodb+srv://") || baseURI.includes("mongodb://")) {
+      const uriParts = baseURI.split("/");
+      if (uriParts.length >= 3) {
+        const lastPart = uriParts[uriParts.length - 1];
+        if (lastPart) {
+          const queryIndex = lastPart.indexOf("?");
+          const queryParams =
+            queryIndex !== -1 ? lastPart.substring(queryIndex) : "";
+          uriParts[uriParts.length - 1] = dbName + queryParams;
+          mongodbUri = uriParts.join("/");
+        } else {
+          mongodbUri = baseURI + "/" + dbName;
+        }
+      } else {
+        mongodbUri = baseURI + "/" + dbName;
+      }
+    } else {
+      mongodbUri = baseURI.replace(/\/[^\/]*$/, `/${dbName}`);
+    }
+
+    // Prepare environment variables
+    const envVars: Record<string, string> = {
+      // Database
+      MONGODB_URI: mongodbUri,
+
+      // Email service
+      RESEND_API_KEY: process.env.RESEND_API_KEY || "",
+
+      // Cloudinary for image uploads
+      CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
+      CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
+      CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
+
+      // Public configuration - Company Info
+      NEXT_PUBLIC_COMPANY_NAME: options.companyName,
+      NEXT_PUBLIC_COMPANY_TAGLINE: options.tagline,
+
+      // Public configuration - Contact Info
+      NEXT_PUBLIC_EMAIL: options.supportEmail || options.userEmail,
+      NEXT_PUBLIC_SUPPORT_EMAIL:
+        options.supportEmail || options.userEmail || "",
+      NEXT_PUBLIC_PHONE_NUMBER: options.phoneNumber || "",
+      NEXT_PUBLIC_WHATSAPP_NUMBER: options.whatsappNumber || "",
+      NEXT_PUBLIC_ADDRESS: options.address || "",
+
+      // Public configuration - Social Media
+      NEXT_PUBLIC_FACEBOOK_URL: options.facebookUrl || "",
+      NEXT_PUBLIC_TWITTER_URL: options.twitterUrl || "",
+      NEXT_PUBLIC_INSTAGRAM_URL: options.instagramUrl || "",
+      NEXT_PUBLIC_LINKEDIN_URL: options.linkedinUrl || "",
+      NEXT_PUBLIC_YOUTUBE_URL: options.youtubeUrl || "",
+
+      // Public configuration - Email settings
+      NEXT_PUBLIC_FROM_EMAIL:
+        options.supportEmail ||
+        `${options.domainName}@${process.env.NEXT_PUBLIC_FROM_DOMAIN}`,
+      NEXT_PUBLIC_FROM_NAME: options.companyName,
+
+      // Public configuration - App URL (Vercel will set this)
+      NEXT_PUBLIC_APP_URL: `https://${options.domainName}.onjuzbuild.com`,
+
+      // Additional metadata
+      SITE_NAME: options.companyName,
+      AUTHOR_NAME: options.fullName,
+    };
+
+    // Filter out empty values to avoid setting empty environment variables
+    const filteredEnvVars: Record<string, string> = {};
+    for (const [key, value] of Object.entries(envVars)) {
+      if (value && value.trim() !== "") {
+        filteredEnvVars[key] = value;
+      }
+    }
+
+    console.log(
+      `Prepared ${
+        Object.keys(filteredEnvVars).length
+      } environment variables for deployment`
+    );
+
+    return filteredEnvVars;
+  }
+
+  /**
    * Main workflow orchestrator
    */
   async createWebsite(
@@ -280,6 +376,7 @@ class WebsiteCreationService {
       results["Vercel Deployment"] = vercelResult.data;
       vercelUrl = vercelResult.data?.vercelUrl;
       const aliasUrl = vercelResult.data?.aliasUrl; // Get the alias URL
+      const vercelProjectName = vercelResult.data?.projectName; // Get the project name
 
       if (jobId) {
         await jobTracker.updateStep(
@@ -308,7 +405,8 @@ class WebsiteCreationService {
 
       const subdomainResult = await this.createSubdomainOnNamecheap(
         options,
-        vercelUrl
+        vercelUrl,
+        vercelProjectName
       );
       if (!subdomainResult.success) {
         if (jobId) {
@@ -339,7 +437,7 @@ class WebsiteCreationService {
       }
       console.log(`✅ Subdomain configured successfully`);
 
-      // Step 6: Final Testing
+      // Step 6: Final Testing & Email Notification (non-blocking)
       console.log(
         `🧪 Step 6: Running final tests for ${options.websiteName}...`
       );
@@ -353,24 +451,34 @@ class WebsiteCreationService {
         );
       }
 
-      const emailResult = await this.sendSetupNotification(options);
-      if (!emailResult.success) {
-        if (jobId) {
-          await jobTracker.updateStep(
-            jobId,
-            "Final Testing",
-            "failed",
-            "Final testing failed",
-            99
+      // Email notification - non-blocking (don't fail workflow if email fails)
+      try {
+        const emailResult = await this.sendSetupNotification(options);
+        if (emailResult.success) {
+          results["Email Notification"] = emailResult.data;
+          console.log("✅ Setup notification email sent successfully");
+        } else {
+          console.warn(
+            `⚠️ Email notification failed (non-critical): ${emailResult.error}`
           );
+          results["Email Notification"] = {
+            sent: false,
+            error: emailResult.error,
+            note: "Email notification failed but website creation succeeded",
+          };
         }
-        return {
-          success: false,
-          error: `Email notification failed: ${emailResult.error}`,
-          step: "Email Notification",
+      } catch (emailError: any) {
+        console.warn(
+          `⚠️ Email notification error (non-critical): ${
+            emailError?.message || emailError
+          }`
+        );
+        results["Email Notification"] = {
+          sent: false,
+          error: emailError?.message || "Email service error",
+          note: "Email notification failed but website creation succeeded",
         };
       }
-      results["Email Notification"] = emailResult.data;
 
       // Step 7: Database Logging
       const loggingResult = await this.logSiteCreation(options);
@@ -1124,7 +1232,16 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       const cleanProjectName = options.websiteName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "-");
-      const project = await vercel.createProject(cleanProjectName, repoUrl);
+
+      // Prepare environment variables for the project
+      const envVars = this.prepareEnvironmentVariables(options);
+
+      const project = await vercel.createProject(
+        cleanProjectName,
+        repoUrl,
+        "nextjs",
+        envVars
+      );
       console.log(
         `Vercel project created: ${project.id} with name: ${cleanProjectName}`
       );
@@ -1228,7 +1345,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
             success: true,
             data: {
               projectId: project.id,
-              projectName: project.name,
+              projectName: cleanProjectName, // Use cleanProjectName for consistency
               deploymentId: deployment.id,
               deploymentUrl: `https://${aliasUrl}`,
               status: "ready",
@@ -1323,14 +1440,16 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
   }
 
   /**
-   * Step 5: Create Namecheap subdomain
+   * Step 5: Create Namecheap subdomain and configure Vercel custom domain
    */
   async createSubdomainOnNamecheap(
     options: WebsiteCreationOptions,
-    vercelUrl?: string
+    vercelUrl?: string,
+    vercelProjectName?: string
   ): Promise<WorkflowResult> {
     try {
       const subdomain = `${options.websiteName}.onjuzbuild.com`;
+      const customDomain = `${options.domainName}.onjuzbuild.com`;
 
       // Check if we have Namecheap configuration
       const namecheapApiUser = process.env.NAMECHEAP_API_USER;
@@ -1344,6 +1463,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
           success: true,
           data: {
             subdomain,
+            customDomain,
             cname: vercelUrl || "your-deployment-url.vercel.app",
             status: "configured",
             note: "Namecheap integration not configured - manual DNS setup required",
@@ -1351,33 +1471,86 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         };
       }
 
-      // Initialize Namecheap API and create DNS record
+      // Initialize Namecheap API
       const namecheap = getNamecheapInstance();
-      const targetUrl =
-        vercelUrl ||
-        process.env.DEPLOYMENT_TARGET ||
-        `${options.websiteName}.vercel.app`;
 
-      // Create CNAME record: websiteName.onjuzbuild.com -> targetUrl
-      console.log(
-        `Creating DNS record: ${options.websiteName}.onjuzbuild.com -> ${targetUrl}`
-      );
-      const dnsResult = await namecheap.createDNSRecord(
+      // Step 1: Add custom domain to Vercel project
+      let cnameTarget = "cname.vercel-dns.com"; // Default Vercel CNAME target
+      let domainAddedToVercel = false;
+
+      if (vercelProjectName && process.env.VERCEL_TOKEN) {
+        try {
+          console.log(
+            `Adding custom domain ${customDomain} to Vercel project ${vercelProjectName}...`
+          );
+          const vercel = getVercelInstance();
+
+          // Add domain to Vercel
+          const domainResult = await vercel.addProjectDomain(
+            vercelProjectName,
+            customDomain
+          );
+
+          domainAddedToVercel = true;
+          console.log(
+            `✓ Domain added to Vercel: ${domainResult.name} (Verified: ${domainResult.verified})`
+          );
+
+          // Get the CNAME target from Vercel
+          const domainConfig = await vercel.getDomainConfig(
+            vercelProjectName,
+            customDomain
+          );
+
+          if (domainConfig.cnameTarget) {
+            cnameTarget = domainConfig.cnameTarget;
+            console.log(`✓ CNAME target from Vercel: ${cnameTarget}`);
+          } else {
+            console.log(`✓ Using default CNAME target: ${cnameTarget}`);
+          }
+        } catch (vercelError: any) {
+          console.error(
+            `Failed to add domain to Vercel:`,
+            vercelError?.message || vercelError
+          );
+          console.log(`Will proceed with default CNAME target: ${cnameTarget}`);
+        }
+      } else {
+        console.log(
+          `Vercel configuration not available. Using default CNAME: ${cnameTarget}`
+        );
+      }
+
+      // Step 2: Create CNAME record on Namecheap
+      console.log(`Creating CNAME record: ${customDomain} -> ${cnameTarget}`);
+
+      const dnsResult = await namecheap.createVercelCNAME(
+        options.domainName,
         "onjuzbuild.com",
-        options.websiteName,
-        targetUrl,
-        "CNAME"
+        cnameTarget
       );
 
       if (dnsResult.success) {
-        console.log(`✅ Subdomain created successfully: ${subdomain}`);
+        console.log(
+          `✅ CNAME record created successfully: ${customDomain} -> ${cnameTarget}`
+        );
+
+        // Wait for DNS propagation (optional)
+        console.log("Waiting for DNS propagation...");
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
         return {
           success: true,
           data: {
             subdomain,
-            cname: targetUrl,
+            customDomain,
+            cname: cnameTarget,
+            vercelDomain: vercelUrl,
+            domainAddedToVercel,
             status: "active",
             message: dnsResult.message,
+            dnsPropagationNote:
+              "DNS changes may take up to 24-48 hours to fully propagate",
           },
         };
       } else {
@@ -1407,11 +1580,10 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       const domain = `${options.websiteName}.onjuzbuild.com`;
       const websiteUrl = `https://${domain}`;
 
-      // Check if we have email configuration
-      const emailUser = process.env.EMAIL_USER;
-      const emailPass = process.env.EMAIL_PASS;
+      // Check if we have Resend API key configured
+      const resendApiKey = process.env.JUZBUILD_RESEND_API_KEY;
 
-      if (!emailUser || !emailPass) {
+      if (!resendApiKey) {
         console.log(
           `Email not configured, skipping notification to: ${options.userEmail}`
         );
@@ -2195,31 +2367,31 @@ export default function RootLayout({
       ];
 
       const logoSizingCSS = `
-/* Logo sizing constraints */
-.logo,
-[class*="logo"],
-img[src*="logo" i],
-img[alt*="logo" i] {
-  max-height: 48px !important;
-  height: auto !important;
-  width: auto !important;
-  max-width: 200px !important;
-}
+              /* Logo sizing constraints */
+              .logo,
+              [class*="logo"],
+              img[src*="logo" i],
+              img[alt*="logo" i] {
+                max-height: 48px !important;
+                height: auto !important;
+                width: auto !important;
+                max-width: 200px !important;
+              }
 
-/* Specific logo sizing for headers and navigation */
-header .logo,
-nav .logo,
-.header .logo,
-.navbar .logo {
-  max-height: 32px !important;
-}
+              /* Specific logo sizing for headers and navigation */
+              header .logo,
+              nav .logo,
+              .header .logo,
+              .navbar .logo {
+                max-height: 32px !important;
+              }
 
-/* Footer logo sizing */
-footer .logo,
-.footer .logo {
-  max-height: 28px !important;
-}
-`;
+              /* Footer logo sizing */
+              footer .logo,
+              .footer .logo {
+                max-height: 28px !important;
+              }
+              `;
 
       let cssAdded = false;
 

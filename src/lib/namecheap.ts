@@ -635,6 +635,107 @@ class NamecheapAPI {
       console.warn("Failed to cache DNS state:", error);
     }
   }
+
+  /**
+   * Create CNAME record for Vercel custom domain
+   * @param subdomain - Subdomain to create (e.g., "example" for example.onjuzbuild.com)
+   * @param rootDomain - Root domain (e.g., "onjuzbuild.com")
+   * @param cnameTarget - Vercel CNAME target (default: "cname.vercel-dns.com")
+   * @returns Promise with result
+   */
+  async createVercelCNAME(
+    subdomain: string,
+    rootDomain: string,
+    cnameTarget: string = "cname.vercel-dns.com"
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log(
+        `Creating CNAME record: ${subdomain}.${rootDomain} -> ${cnameTarget}`
+      );
+
+      // Use the existing createDNSRecord method
+      const result = await this.createDNSRecord(
+        rootDomain,
+        subdomain,
+        cnameTarget,
+        "CNAME"
+      );
+
+      if (result.success) {
+        console.log(
+          `✓ CNAME record created successfully for ${subdomain}.${rootDomain}`
+        );
+      } else {
+        console.error(`Failed to create CNAME record: ${result.message}`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error("CNAME record creation failed:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "CNAME creation failed",
+      };
+    }
+  }
+
+  /**
+   * Verify CNAME record for a domain
+   * @param subdomain - Subdomain to verify
+   * @param rootDomain - Root domain
+   * @param expectedTarget - Expected CNAME target
+   * @returns Promise with verification result
+   */
+  async verifyCNAME(
+    subdomain: string,
+    rootDomain: string,
+    expectedTarget: string
+  ): Promise<{ success: boolean; message: string; actualTarget?: string }> {
+    try {
+      const fullDomain = `${subdomain}.${rootDomain}`;
+      console.log(`Verifying CNAME record for ${fullDomain}...`);
+
+      // Get current DNS records
+      const records = await this.getCurrentDNSRecords(rootDomain);
+
+      // Find the CNAME record for this subdomain
+      const cnameRecord = records.find(
+        (record: { hostName: string; recordType: string }) =>
+          record.hostName === subdomain && record.recordType === "CNAME"
+      );
+
+      if (!cnameRecord) {
+        return {
+          success: false,
+          message: `CNAME record not found for ${fullDomain}`,
+        };
+      }
+
+      const actualTarget = (cnameRecord as any).address;
+
+      if (actualTarget === expectedTarget) {
+        return {
+          success: true,
+          message: `CNAME record verified: ${fullDomain} -> ${actualTarget}`,
+          actualTarget,
+        };
+      } else {
+        return {
+          success: false,
+          message: `CNAME mismatch. Expected: ${expectedTarget}, Actual: ${actualTarget}`,
+          actualTarget,
+        };
+      }
+    } catch (error) {
+      console.error("CNAME verification failed:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "CNAME verification failed",
+      };
+    }
+  }
 }
 
 // Export the class and types

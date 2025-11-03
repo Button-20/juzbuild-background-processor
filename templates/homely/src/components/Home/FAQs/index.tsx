@@ -68,7 +68,7 @@ const FAQ: React.FC = () => {
               FAQs
             </p>
             <h2 className="text-2xl sm:text-3xl lg:text-40 xl:text-52 leading-[1.2] font-medium text-dark dark:text-white mb-4 sm:mb-6">
-              Everything about Homely homes
+              Everything about {process.env.NEXT_PUBLIC_COMPANY_NAME || "Homely"}
             </h2>
             <p className="text-dark/50 dark:text-white/50 text-sm sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8 lg:pr-8 xl:pr-20">
               We know that buying, selling, or investing in real estate can be

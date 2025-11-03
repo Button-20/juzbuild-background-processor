@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
@@ -6,8 +8,43 @@ import {
 } from "@/components/ui/accordion";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+
+interface Faq {
+  _id: string;
+  question: string;
+  answer: string;
+  category?: string;
+  isActive: boolean;
+  order: number;
+}
 
 const FAQ: React.FC = () => {
+  const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const response = await fetch("/api/faqs");
+        if (response.ok) {
+          const data = await response.json();
+          setFaqs(data.faqs || []);
+        }
+      } catch (error) {
+        console.error("Error fetching FAQs:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFaqs();
+  }, []);
+
+  if (loading || faqs.length === 0) {
+    return null; // Hide section if no FAQs or loading
+  }
+
   return (
     <section id="faqs" className="py-12 sm:py-16 lg:py-20">
       <div className="container max-w-8xl mx-auto px-4 sm:px-5 2xl:px-0">
@@ -41,40 +78,22 @@ const FAQ: React.FC = () => {
             <div className="mt-6 sm:mt-8">
               <Accordion
                 type="single"
-                defaultValue="item-1"
+                defaultValue={
+                  faqs.length > 0 ? `item-${faqs[0]._id}` : undefined
+                }
                 collapsible
                 className="w-full flex flex-col gap-4 sm:gap-6"
               >
-                <AccordionItem value="item-1">
-                  <AccordionTrigger className="text-sm sm:text-base font-medium hover:no-underline py-4 sm:py-6">
-                    1. Can I personalize my homely home?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm sm:text-base text-dark/70 dark:text-white/70 pb-4 sm:pb-6">
-                    Discover a diverse range of premium properties, from
-                    luxurious apartments to spacious villas, tailored to your
-                    needs.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger className="text-sm sm:text-base font-medium hover:no-underline py-4 sm:py-6">
-                    2. Where can I find homely homes?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm sm:text-base text-dark/70 dark:text-white/70 pb-4 sm:pb-6">
-                    Discover a diverse range of premium properties, from
-                    luxurious apartments to spacious villas, tailored to your
-                    needs.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger className="text-sm sm:text-base font-medium hover:no-underline py-4 sm:py-6">
-                    3. What steps to buy a homely?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm sm:text-base text-dark/70 dark:text-white/70 pb-4 sm:pb-6">
-                    Discover a diverse range of premium properties, from
-                    luxurious apartments to spacious villas, tailored to your
-                    needs.
-                  </AccordionContent>
-                </AccordionItem>
+                {faqs.map((faq, index) => (
+                  <AccordionItem key={faq._id} value={`item-${faq._id}`}>
+                    <AccordionTrigger className="text-sm sm:text-base font-medium hover:no-underline py-4 sm:py-6 text-left">
+                      {index + 1}. {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm sm:text-base text-dark/70 dark:text-white/70 pb-4 sm:pb-6">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
               </Accordion>
             </div>
           </div>

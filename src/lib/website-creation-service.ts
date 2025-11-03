@@ -2064,6 +2064,9 @@ export default function ${componentName}Page() {
     // Update next.config.ts with comprehensive user data
     await this.updateNextConfigFile(templatePath, options);
 
+    // Update globals.css with selected color palette
+    await this.updateGlobalsCssColors(templatePath, options);
+
     // Update other site configuration files with user's branding
     const configFiles = ["src/config/site.ts", "src/lib/config.ts"];
 
@@ -2550,6 +2553,83 @@ export default nextConfig;
     } catch (error) {
       console.error("Error updating next.config.ts:", error);
       // Don't fail the entire process if config update fails
+    }
+  }
+
+  /**
+   * Update globals.css with selected color palette
+   */
+  private async updateGlobalsCssColors(
+    templatePath: string,
+    options: WebsiteCreationOptions
+  ): Promise<void> {
+    try {
+      // Check if brandColors has 4 colors (from palette selection)
+      if (!options.brandColors || options.brandColors.length !== 4) {
+        console.log(
+          "⚠️ No complete color palette selected, skipping globals.css color customization"
+        );
+        return;
+      }
+
+      const [primary, skyblue, lightskyblue, dark] = options.brandColors;
+
+      // Find globals.css file - try multiple possible locations
+      const possiblePaths = [
+        "src/app/globals.css",
+        "src/styles/globals.css",
+        "styles/globals.css",
+        "app/globals.css",
+      ];
+
+      let globalsCssPath: string | null = null;
+
+      for (const possiblePath of possiblePaths) {
+        const fullPath = path.join(templatePath, possiblePath);
+        try {
+          await fs.access(fullPath);
+          globalsCssPath = fullPath;
+          break;
+        } catch {
+          // File doesn't exist at this path, try next
+        }
+      }
+
+      if (!globalsCssPath) {
+        console.log("⚠️ globals.css not found, skipping color customization");
+        return;
+      }
+
+      // Read the globals.css file
+      let cssContent = await fs.readFile(globalsCssPath, "utf-8");
+
+      // Replace the color CSS variables in the @theme block
+      cssContent = cssContent.replace(
+        /--color-primary:\s*#[0-9a-fA-F]{6};/g,
+        `--color-primary: ${primary};`
+      );
+      cssContent = cssContent.replace(
+        /--color-skyblue:\s*#[0-9a-fA-F]{6};/g,
+        `--color-skyblue: ${skyblue};`
+      );
+      cssContent = cssContent.replace(
+        /--color-lightskyblue:\s*#[0-9a-fA-F]{6};/g,
+        `--color-lightskyblue: ${lightskyblue};`
+      );
+      cssContent = cssContent.replace(
+        /--color-dark:\s*#[0-9a-fA-F]{6};/g,
+        `--color-dark: ${dark};`
+      );
+
+      // Write the updated content back
+      await fs.writeFile(globalsCssPath, cssContent);
+
+      console.log(
+        `✅ Updated globals.css with color palette: ${primary}, ${skyblue}, ${lightskyblue}, ${dark}`
+      );
+    } catch (error) {
+      console.error("Error updating globals.css colors:", error);
+      // Don't fail the entire process if color update fails
     }
   }
 

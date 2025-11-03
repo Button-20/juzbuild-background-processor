@@ -659,10 +659,6 @@ class WebsiteCreationService {
           name: "settings",
           data: {
             siteName: options.companyName,
-            websitename:
-              options.websiteName.toLowerCase().replace(/[^a-z0-9]/g, "-") +
-              "-" +
-              Date.now(),
             primaryColor:
               (options.brandColors && options.brandColors[0]) || "#3B82F6",
             secondaryColor:
@@ -811,15 +807,15 @@ class WebsiteCreationService {
         },
         {
           name: "pages",
-          data: (options.includedPages || ["About", "Services", "Contact"]).map(
-            (page) => ({
-              slug: page.toLowerCase().replace(/\s+/g, "-"),
-              title: page,
-              content: this.generatePageContent(page, options),
-              isActive: true,
+          data: (options.includedPages || ["home", "listings", "about", "contact"]).map(
+            (pageId) => ({
+              pageId: pageId,
+              slug: pageId === "home" ? "/" : `/${pageId}`,
+              title: pageId.charAt(0).toUpperCase() + pageId.slice(1),
+              isEnabled: true,
               order: (
-                options.includedPages || ["About", "Services", "Contact"]
-              ).indexOf(page),
+                options.includedPages || ["home", "listings", "about", "contact"]
+              ).indexOf(pageId),
               createdAt: new Date(),
             })
           ),
@@ -901,6 +897,9 @@ class WebsiteCreationService {
 
       // Create additional pages based on user selections
       await this.createUserPages(templatePath, options);
+
+      // Update navigation based on selected pages
+      await this.updateNavigation(templatePath, options);
 
       // Update template configuration and branding
       await this.customizeTemplate(templatePath, options);
@@ -1664,11 +1663,6 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         userId: options.userId,
         userEmail: options.userEmail,
         websiteName: options.companyName || options.websiteName, // Use companyName as display name
-        // Keep for backward compatibility
-        websitename:
-          options.websiteName.toLowerCase().replace(/[^a-z0-9]/g, "-") +
-          "-" +
-          Date.now(),
         companyName: options.companyName,
         templatePath: `/templates/${options.websiteName}`,
         repoUrl: `https://github.com/${process.env.GITHUB_USERNAME}/${options.websiteName}`,
@@ -1856,190 +1850,139 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
     templatePath: string,
     options: WebsiteCreationOptions
   ): Promise<void> {
-    const pagesDir = path.join(templatePath, "src", "app");
-    const includedPages = options.includedPages || [
-      "Home",
-      "Properties",
-      "About",
-      "Contact",
+    const appPagesDir = path.join(templatePath, "src", "app");
+    
+    // Map onboarding page IDs to actual folder names in the template
+    const pageMapping: Record<string, string> = {
+      home: "", // Root page (page.tsx in app folder)
+      listings: "properties",
+      about: "about",
+      contact: "contactus",
+      blog: "blogs",
+    };
+
+    // Pages/folders that should always be kept (not page folders)
+    const alwaysKeepItems = [
+      "privacy-policy",
+      "terms-of-service",
+      "api",
+      "context",
+      "favicon.ico",
+      "globals.css",
+      "layout.tsx",
+      "not-found.tsx",
+      "page.tsx", // Home page
     ];
 
-    for (const page of includedPages) {
-      const pageName = page.toLowerCase().replace(/\s+/g, "-");
+    // Get the list of selected pages (use IDs from onboarding)
+    const includedPageIds = options.includedPages || [
+      "home",
+      "listings",
+      "about",
+      "contact",
+    ];
 
-      if (pageName === "home") continue; // Home is the root page
+    // Get all items in app directory
+    const existingItems = await fs.readdir(appPagesDir, {
+      withFileTypes: true,
+    });
 
-      const pageDir = path.join(pagesDir, pageName);
-
-      // Check if page already exists (from homely template) and remove it first
-      try {
-        const existingPageFile = path.join(pageDir, "page.tsx");
-        if (
-          await fs
-            .access(existingPageFile)
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          await fs.rm(pageDir, { recursive: true, force: true });
-        }
-      } catch (error) {
-        // Page doesn't exist, which is fine
+    // Remove pages that were NOT selected
+    for (const item of existingItems) {
+      const itemName = item.name;
+      
+      // Always keep essential files and legal pages
+      if (alwaysKeepItems.includes(itemName)) {
+        continue;
       }
 
-      // Create fresh page directory and file
-      await fs.mkdir(pageDir, { recursive: true });
+      // Only process directories (page folders)
+      if (!item.isDirectory()) {
+        continue;
+      }
+      
+      // Check if this folder corresponds to a page that should be kept
+      const shouldKeep = Object.entries(pageMapping).some(
+        ([pageId, mappedFolder]) => {
+          return (
+            mappedFolder === itemName && includedPageIds.includes(pageId)
+          );
+        }
+      );
 
-      const pageContent = this.generatePageContent(page, options);
-      const pageFile = path.join(pageDir, "page.tsx");
-
-      await fs.writeFile(pageFile, pageContent);
+      // Remove the folder if it wasn't selected
+      if (!shouldKeep) {
+        const itemPath = path.join(appPagesDir, itemName);
+        console.log(`Removing unselected page: ${itemName}`);
+        await fs.rm(itemPath, { recursive: true, force: true });
+      }
     }
+
+    console.log(
+      `Enabled pages: ${includedPageIds
+        .map((id) => pageMapping[id] || id)
+        .filter((p) => p)
+        .join(", ")} + legal pages`
+    );
   }
 
-  private generatePageContent(
-    pageName: string,
+  private async updateNavigation(
+    templatePath: string,
     options: WebsiteCreationOptions
-  ): string {
-    const componentName = pageName.replace(/\s+/g, "");
-    const companyName = options.companyName || options.websiteName;
+  ): Promise<void> {
+    const navLinkPath = path.join(
+      templatePath,
+      "src",
+      "app",
+      "api",
+      "navlink.tsx"
+    );
 
-    switch (pageName.toLowerCase()) {
-      case "about":
-        return `
-import React from 'react';
+    // Map onboarding page IDs to navigation items
+    const pageToNavItem: Record<
+      string,
+      { label: string; href: string; order: number }
+    > = {
+      home: { label: "Home", href: "/", order: 1 },
+      about: { label: "About", href: "/about", order: 2 },
+      listings: { label: "Properties", href: "/properties", order: 3 },
+      blog: { label: "Blog", href: "/blogs", order: 4 },
+      contact: { label: "Contact", href: "/contactus", order: 5 },
+    };
 
-export default function AboutPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">About ${companyName}</h1>
-      <div className="prose max-w-none">
-        <p className="text-lg mb-6">
-          ${
-            options.aboutSection ||
-            `Welcome to ${companyName}, your trusted partner in real estate.`
-          }
-        </p>
-        <p className="mb-4">
-          Our team is dedicated to helping you find the perfect property that meets your needs and budget.
-          With years of experience in the real estate market, we provide expert guidance throughout
-          your property journey.
-        </p>
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Our Services</h2>
-        <ul className="list-disc pl-6">
-          <li>Property Sales</li>
-          <li>Property Rentals</li>
-          <li>Property Management</li>
-          <li>Investment Consultation</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
+    // Get selected pages
+    const includedPageIds = options.includedPages || [
+      "home",
+      "listings",
+      "contact",
+    ];
+
+    // Build navigation items based on selected pages
+    const navItems = includedPageIds
+      .map((pageId) => pageToNavItem[pageId])
+      .filter((item): item is { label: string; href: string; order: number } => 
+        item !== undefined
+      )
+      .sort((a, b) => a.order - b.order);
+
+    // Generate new navigation file content
+    const navContent = `import { NavLinks } from "@/types/navlink";
+
+export const navLinks: NavLinks[] = [
+${navItems.map((item) => `  { label: "${item.label}", href: "${item.href}" },`).join("\n")}
+];
 `;
 
-      case "contact":
-        return `
-import React from 'react';
-
-export default function ContactPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Contact ${companyName}</h1>
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Get in Touch</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold">Email</h3>
-              <p>${
-                options.userEmail || "info@" + options.websiteName + ".com"
-              }</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Phone</h3>
-              <p>${
-                options.preferredContactMethod?.includes("phone")
-                  ? "+1 (555) 123-4567"
-                  : "Available upon request"
-              }</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Address</h3>
-              <p>123 Real Estate Street<br />Property City, PC 12345</p>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Contact Form</h2>
-          <form className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <input type="text" className="w-full border rounded-md px-3 py-2" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input type="email" className="w-full border rounded-md px-3 py-2" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Message</label>
-              <textarea rows={4} className="w-full border rounded-md px-3 py-2"></textarea>
-            </div>
-            <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
-              Send Message
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-`;
-
-      case "services":
-        return `
-import React from 'react';
-
-export default function ServicesPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Our Services</h1>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold mb-3">Property Sales</h3>
-          <p>Expert assistance in buying and selling properties with market insights and professional guidance.</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold mb-3">Property Rentals</h3>
-          <p>Find the perfect rental property or manage your rental investments with our comprehensive services.</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold mb-3">Property Management</h3>
-          <p>Complete property management solutions for landlords and property investors.</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-`;
-
-      default:
-        return `
-import React from 'react';
-
-export default function ${componentName}Page() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">${pageName}</h1>
-      <div className="prose max-w-none">
-        <p>Welcome to the ${pageName.toLowerCase()} page of ${companyName}.</p>
-        <p>This page is ready for your custom content.</p>
-      </div>
-    </div>
-  );
-}
-`;
+    try {
+      await fs.writeFile(navLinkPath, navContent);
+      console.log(
+        `Updated navigation with ${navItems.length} links: ${navItems.map((n) => n.label).join(", ")}`
+      );
+    } catch (error) {
+      console.error("Failed to update navigation:", error);
     }
   }
+
 
   private async customizeTemplate(
     templatePath: string,
@@ -2178,6 +2121,10 @@ export default function RootLayout({
     try {
       // Optimize logo URL for sizing if it's a Cloudinary URL
       const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
+
+      // Replace favicon.ico with the logo
+      await this.replaceFavicon(templatePath, logoUrl);
+
       // Common logo file patterns to replace
       const logoPatterns = [
         "logo.svg",
@@ -2356,6 +2303,129 @@ export default function RootLayout({
     } catch (error) {
       // Return original URL if any error occurs
       return logoUrl;
+    }
+  }
+
+  /**
+   * Replace the favicon with the user's logo
+   */
+  private async replaceFavicon(
+    templatePath: string,
+    logoUrl: string
+  ): Promise<void> {
+    try {
+      // Favicon-specific transformation for square icon (32x32)
+      let faviconUrl = logoUrl;
+      if (
+        logoUrl.includes("cloudinary.com") ||
+        logoUrl.includes("res.cloudinary.com")
+      ) {
+        // Transform to ICO format, 32x32, cropped to square
+        const faviconTransformations = "w_32,h_32,c_fill,f_ico,q_auto";
+        if (logoUrl.includes("/upload/")) {
+          faviconUrl = logoUrl.replace(
+            "/upload/",
+            `/upload/${faviconTransformations}/`
+          );
+        }
+      }
+
+      // Paths where favicon might be located
+      const faviconPaths = [
+        path.join(templatePath, "public", "favicon.ico"),
+        path.join(templatePath, "src", "app", "favicon.ico"),
+        path.join(templatePath, "app", "favicon.ico"),
+      ];
+
+      // Download and replace favicon
+      for (const faviconPath of faviconPaths) {
+        try {
+          // Check if file exists
+          await fs.access(faviconPath);
+
+          // Download the favicon-sized logo
+          const response = await fetch(faviconUrl);
+          if (response.ok) {
+            const buffer = await response.arrayBuffer();
+            await fs.writeFile(faviconPath, Buffer.from(buffer));
+            console.log(`✅ Replaced favicon at: ${faviconPath}`);
+          }
+        } catch (error) {
+          // File doesn't exist or couldn't be replaced, continue to next path
+          continue;
+        }
+      }
+
+      // Also create icon.png versions for better compatibility
+      await this.createIconVariants(templatePath, logoUrl);
+    } catch (error) {
+      console.error("❌ Failed to replace favicon:", error);
+      // Favicon replacement is optional, don't fail the entire process
+    }
+  }
+
+  /**
+   * Create icon variants (icon.png, apple-touch-icon.png, etc.)
+   */
+  private async createIconVariants(
+    templatePath: string,
+    logoUrl: string
+  ): Promise<void> {
+    try {
+      if (
+        !logoUrl.includes("cloudinary.com") &&
+        !logoUrl.includes("res.cloudinary.com")
+      ) {
+        // Only create variants for Cloudinary URLs where we can transform
+        return;
+      }
+
+      const iconVariants = [
+        {
+          name: "icon.png",
+          size: 192,
+          paths: [
+            path.join(templatePath, "public", "icon.png"),
+            path.join(templatePath, "src", "app", "icon.png"),
+          ],
+        },
+        {
+          name: "apple-touch-icon.png",
+          size: 180,
+          paths: [
+            path.join(templatePath, "public", "apple-touch-icon.png"),
+            path.join(templatePath, "src", "app", "apple-touch-icon.png"),
+          ],
+        },
+      ];
+
+      for (const variant of iconVariants) {
+        // Create transformation for this size
+        const transformations = `w_${variant.size},h_${variant.size},c_fill,f_png,q_auto`;
+        const iconUrl = logoUrl.replace(
+          "/upload/",
+          `/upload/${transformations}/`
+        );
+
+        // Try each possible path
+        for (const iconPath of variant.paths) {
+          try {
+            const response = await fetch(iconUrl);
+            if (response.ok) {
+              const buffer = await response.arrayBuffer();
+              await fs.writeFile(iconPath, Buffer.from(buffer));
+              console.log(`✅ Created ${variant.name} at: ${iconPath}`);
+              break; // Success, move to next variant
+            }
+          } catch (error) {
+            // Continue to next path
+            continue;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to create icon variants:", error);
+      // Icon variant creation is optional
     }
   }
 

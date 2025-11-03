@@ -807,18 +807,18 @@ class WebsiteCreationService {
         },
         {
           name: "pages",
-          data: (options.includedPages || ["home", "listings", "about", "contact"]).map(
-            (pageId) => ({
-              pageId: pageId,
-              slug: pageId === "home" ? "/" : `/${pageId}`,
-              title: pageId.charAt(0).toUpperCase() + pageId.slice(1),
-              isEnabled: true,
-              order: (
-                options.includedPages || ["home", "listings", "about", "contact"]
-              ).indexOf(pageId),
-              createdAt: new Date(),
-            })
-          ),
+          data: (
+            options.includedPages || ["home", "listings", "about", "contact"]
+          ).map((pageId) => ({
+            pageId: pageId,
+            slug: pageId === "home" ? "/" : `/${pageId}`,
+            title: pageId.charAt(0).toUpperCase() + pageId.slice(1),
+            isEnabled: true,
+            order: (
+              options.includedPages || ["home", "listings", "about", "contact"]
+            ).indexOf(pageId),
+            createdAt: new Date(),
+          })),
         },
         {
           name: "users",
@@ -1851,7 +1851,7 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
     options: WebsiteCreationOptions
   ): Promise<void> {
     const appPagesDir = path.join(templatePath, "src", "app");
-    
+
     // Map onboarding page IDs to actual folder names in the template
     const pageMapping: Record<string, string> = {
       home: "", // Root page (page.tsx in app folder)
@@ -1890,7 +1890,7 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
     // Remove pages that were NOT selected
     for (const item of existingItems) {
       const itemName = item.name;
-      
+
       // Always keep essential files and legal pages
       if (alwaysKeepItems.includes(itemName)) {
         continue;
@@ -1900,13 +1900,11 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
       if (!item.isDirectory()) {
         continue;
       }
-      
+
       // Check if this folder corresponds to a page that should be kept
       const shouldKeep = Object.entries(pageMapping).some(
         ([pageId, mappedFolder]) => {
-          return (
-            mappedFolder === itemName && includedPageIds.includes(pageId)
-          );
+          return mappedFolder === itemName && includedPageIds.includes(pageId);
         }
       );
 
@@ -1960,8 +1958,9 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
     // Build navigation items based on selected pages
     const navItems = includedPageIds
       .map((pageId) => pageToNavItem[pageId])
-      .filter((item): item is { label: string; href: string; order: number } => 
-        item !== undefined
+      .filter(
+        (item): item is { label: string; href: string; order: number } =>
+          item !== undefined
       )
       .sort((a, b) => a.order - b.order);
 
@@ -1969,20 +1968,23 @@ NEXT_PUBLIC_SITE_URL=https://${options.websiteName}.vercel.app
     const navContent = `import { NavLinks } from "@/types/navlink";
 
 export const navLinks: NavLinks[] = [
-${navItems.map((item) => `  { label: "${item.label}", href: "${item.href}" },`).join("\n")}
+${navItems
+  .map((item) => `  { label: "${item.label}", href: "${item.href}" },`)
+  .join("\n")}
 ];
 `;
 
     try {
       await fs.writeFile(navLinkPath, navContent);
       console.log(
-        `Updated navigation with ${navItems.length} links: ${navItems.map((n) => n.label).join(", ")}`
+        `Updated navigation with ${navItems.length} links: ${navItems
+          .map((n) => n.label)
+          .join(", ")}`
       );
     } catch (error) {
       console.error("Failed to update navigation:", error);
     }
   }
-
 
   private async customizeTemplate(
     templatePath: string,

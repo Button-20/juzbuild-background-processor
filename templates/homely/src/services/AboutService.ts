@@ -108,7 +108,8 @@ export class AboutService {
           "We're here to help you achieve your real estate goals. Get in touch with us today and let's start a conversation.",
         ctaImage:
           "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?ixlib=rb-4.1.0&auto=format&fit=crop&q=80&w=1074",
-        storyImage: "/images/hero/heroBanner.png",
+        storyImage:
+          "https://images.unsplash.com/photo-1593696140826-c58b021acf8b?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170",
         createdAt: new Date(),
         updatedAt: new Date(),
         ...validatedData,

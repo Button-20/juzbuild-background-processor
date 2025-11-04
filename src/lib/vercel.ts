@@ -124,9 +124,15 @@ class VercelAPI {
       });
 
       // Log WhatsApp number specifically for debugging
-      const whatsappVar = envVarArray.find(v => v.key === 'NEXT_PUBLIC_WHATSAPP_NUMBER');
+      const whatsappVar = envVarArray.find(
+        (v) => v.key === "NEXT_PUBLIC_WHATSAPP_NUMBER"
+      );
       if (whatsappVar) {
-        console.log(`✓ WhatsApp Number environment variable set: ${whatsappVar.value || "(empty)"}`);
+        console.log(
+          `✓ WhatsApp Number environment variable set: ${
+            whatsappVar.value || "(empty)"
+          }`
+        );
       }
 
       console.log(

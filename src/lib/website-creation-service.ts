@@ -1240,7 +1240,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       console.log(`📱 WhatsApp Configuration:
         - Input WhatsApp Number: ${options.whatsappNumber || "(not provided)"}
         - Input Phone Number: ${options.phoneNumber || "(not provided)"}
-        - Final NEXT_PUBLIC_WHATSAPP_NUMBER: ${envVars.NEXT_PUBLIC_WHATSAPP_NUMBER || "(empty)"}
+        - Final NEXT_PUBLIC_WHATSAPP_NUMBER: ${
+          envVars.NEXT_PUBLIC_WHATSAPP_NUMBER || "(empty)"
+        }
       `);
 
       const project = await vercel.createProject(
@@ -1255,7 +1257,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
 
       // Wait for project setup to complete, GitHub to propagate, and environment variables to be applied
       // Environment variables need time to propagate in Vercel's system before deployment
-      console.log("⏳ Waiting for environment variables to propagate in Vercel...");
+      console.log(
+        "⏳ Waiting for environment variables to propagate in Vercel..."
+      );
       await new Promise((resolve) => setTimeout(resolve, 15000)); // Increased from 8s to 15s
 
       // Update step status - Creating deployment
@@ -2606,25 +2610,19 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
         protocol: "http",
-        hostname: "localhost",
-        port: "3000",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ui-avatars.com",
-        pathname: "/api/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
+        hostname: "**",
       },
     ],
   },
+
 };
 
 export default nextConfig;

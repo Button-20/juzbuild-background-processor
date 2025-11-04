@@ -63,7 +63,8 @@ class VercelAPI {
         buildCommand: "npm run build",
         devCommand: "npm run dev",
         outputDirectory: ".next",
-        installCommand: "npm i -f",
+        installCommand: "npm install --force",
+        rootDirectory: undefined, // Project files are at repository root
       },
     });
 
@@ -77,7 +78,7 @@ class VercelAPI {
       name: result.name!,
       accountId: result.accountId!,
       framework: result.framework || framework,
-      devCommand: result.devCommand || "npm run dev",
+      devCommand: result.devCommand || "npm start",
       buildCommand: result.buildCommand || "npm run build",
       outputDirectory: result.outputDirectory || ".next",
     };

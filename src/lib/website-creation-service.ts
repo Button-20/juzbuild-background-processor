@@ -997,7 +997,7 @@ ${options.aboutSection}
 
 1. Clone this repository
 2. Install dependencies: \`npm install\`
-3. Run development server: \`npm run dev\`
+3. Run development server: \`npm start\`
 4. Open [http://localhost:3000](http://localhost:3000)
 
 ## Deployment
@@ -2615,22 +2615,15 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
         protocol: "http",
-        hostname: "localhost",
-        port: "3000",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ui-avatars.com",
-        pathname: "/api/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
+        hostname: "**",
       },
     ],
   },
@@ -2891,8 +2884,7 @@ export default nextConfig;
               !item.name.endsWith(".log") &&
               item.name !== ".DS_Store" &&
               item.name !== "Thumbs.db" &&
-              !item.name.startsWith(".env") &&
-              item.name !== ".gitignore"
+              !item.name.startsWith(".env")
             ) {
               files.push({ fullPath, relativePath });
             }

@@ -156,7 +156,8 @@ class WebsiteCreationService {
       NEXT_PUBLIC_SUPPORT_EMAIL:
         options.supportEmail || options.userEmail || "",
       NEXT_PUBLIC_PHONE_NUMBER: options.phoneNumber || "",
-      NEXT_PUBLIC_WHATSAPP_NUMBER: options.whatsappNumber || options.phoneNumber || "",
+      NEXT_PUBLIC_WHATSAPP_NUMBER:
+        options.whatsappNumber || options.phoneNumber || "",
       NEXT_PUBLIC_ADDRESS: options.address || "",
 
       // Public configuration - Social Media

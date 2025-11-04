@@ -393,7 +393,10 @@ export default function AboutPage() {
             {/* Left: Image */}
             <div className="relative h-[400px] md:h-[500px] lg:h-[600px] rounded-2xl overflow-hidden">
               <Image
-                src={aboutData?.storyImage || "/images/hero/heroBanner.png"}
+                src={
+                  aboutData?.storyImage ||
+                  "https://images.unsplash.com/photo-1593696140826-c58b021acf8b?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170"
+                }
                 alt="Our Story"
                 fill
                 className="object-cover"

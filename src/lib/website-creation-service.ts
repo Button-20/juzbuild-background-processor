@@ -156,7 +156,7 @@ class WebsiteCreationService {
       NEXT_PUBLIC_SUPPORT_EMAIL:
         options.supportEmail || options.userEmail || "",
       NEXT_PUBLIC_PHONE_NUMBER: options.phoneNumber || "",
-      NEXT_PUBLIC_WHATSAPP_NUMBER: options.whatsappNumber || "",
+      NEXT_PUBLIC_WHATSAPP_NUMBER: options.whatsappNumber || options.phoneNumber || "",
       NEXT_PUBLIC_ADDRESS: options.address || "",
 
       // Public configuration - Social Media
@@ -997,7 +997,7 @@ ${options.aboutSection}
 
 1. Clone this repository
 2. Install dependencies: \`npm install\`
-3. Run development server: \`npm start\`
+3. Run development server: \`npm run dev\`
 4. Open [http://localhost:3000](http://localhost:3000)
 
 ## Deployment
@@ -2340,30 +2340,22 @@ export default function RootLayout({
       ];
 
       // Download and replace favicon
-      let faviconReplaced = false;
       for (const faviconPath of faviconPaths) {
         try {
+          // Check if file exists
+          await fs.access(faviconPath);
+
           // Download the favicon-sized logo
           const response = await fetch(faviconUrl);
           if (response.ok) {
             const buffer = await response.arrayBuffer();
-            // Create directory if it doesn't exist
-            const dir = path.dirname(faviconPath);
-            await fs.mkdir(dir, { recursive: true });
-            // Write the file (create or replace)
             await fs.writeFile(faviconPath, Buffer.from(buffer));
             console.log(`✅ Replaced favicon at: ${faviconPath}`);
-            faviconReplaced = true;
           }
         } catch (error) {
-          // Continue to next path if this one fails
-          console.log(`⚠️ Could not replace favicon at ${faviconPath}:`, error instanceof Error ? error.message : String(error));
+          // File doesn't exist or couldn't be replaced, continue to next path
           continue;
         }
-      }
-
-      if (!faviconReplaced) {
-        console.log(`⚠️ No favicon was replaced - will rely on icon variants`);
       }
 
       // Also create icon.png versions for better compatibility
@@ -2418,30 +2410,19 @@ export default function RootLayout({
         );
 
         // Try each possible path
-        let variantCreated = false;
         for (const iconPath of variant.paths) {
           try {
             const response = await fetch(iconUrl);
             if (response.ok) {
               const buffer = await response.arrayBuffer();
-              // Create directory if it doesn't exist
-              const dir = path.dirname(iconPath);
-              await fs.mkdir(dir, { recursive: true });
-              // Write the file (create or replace)
               await fs.writeFile(iconPath, Buffer.from(buffer));
               console.log(`✅ Created ${variant.name} at: ${iconPath}`);
-              variantCreated = true;
               break; // Success, move to next variant
             }
           } catch (error) {
             // Continue to next path
-            console.log(`⚠️ Could not create ${variant.name} at ${iconPath}:`, error instanceof Error ? error.message : String(error));
             continue;
           }
-        }
-        
-        if (!variantCreated) {
-          console.log(`⚠️ Failed to create ${variant.name} at any path`);
         }
       }
     } catch (error) {
@@ -2558,10 +2539,10 @@ const appConfig = {
   },
   // Site Configuration - Contact Information, Social Links, Company Info
   contact: {
-    phone: "${options.phoneNumber || ""}",
+    phone: "${options.phoneNumber || options.whatsappNumber || ""}",
     email: "${options.userEmail}",
     supportEmail: "${options.supportEmail || options.userEmail}",
-    whatsappNumber: "${options.whatsappNumber || options.phoneNumber || ""}",
+    whatsappNumber: "${options.whatsappNumber || ""}",
     address: "${options.address || ""}",
   },
   social: {
@@ -2615,15 +2596,22 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: "http",
+        hostname: "localhost",
+        port: "3000",
+        pathname: "/**",
       },
       {
-        protocol: "http",
-        hostname: "**",
+        protocol: "https",
+        hostname: "ui-avatars.com",
+        pathname: "/api/**",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
       },
     ],
   },
@@ -2884,7 +2872,8 @@ export default nextConfig;
               !item.name.endsWith(".log") &&
               item.name !== ".DS_Store" &&
               item.name !== "Thumbs.db" &&
-              !item.name.startsWith(".env")
+              !item.name.startsWith(".env") &&
+              item.name !== ".gitignore"
             ) {
               files.push({ fullPath, relativePath });
             }

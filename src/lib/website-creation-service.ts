@@ -2340,22 +2340,30 @@ export default function RootLayout({
       ];
 
       // Download and replace favicon
+      let faviconReplaced = false;
       for (const faviconPath of faviconPaths) {
         try {
-          // Check if file exists
-          await fs.access(faviconPath);
-
           // Download the favicon-sized logo
           const response = await fetch(faviconUrl);
           if (response.ok) {
             const buffer = await response.arrayBuffer();
+            // Create directory if it doesn't exist
+            const dir = path.dirname(faviconPath);
+            await fs.mkdir(dir, { recursive: true });
+            // Write the file (create or replace)
             await fs.writeFile(faviconPath, Buffer.from(buffer));
             console.log(`✅ Replaced favicon at: ${faviconPath}`);
+            faviconReplaced = true;
           }
         } catch (error) {
-          // File doesn't exist or couldn't be replaced, continue to next path
+          // Continue to next path if this one fails
+          console.log(`⚠️ Could not replace favicon at ${faviconPath}:`, error instanceof Error ? error.message : String(error));
           continue;
         }
+      }
+
+      if (!faviconReplaced) {
+        console.log(`⚠️ No favicon was replaced - will rely on icon variants`);
       }
 
       // Also create icon.png versions for better compatibility
@@ -2410,19 +2418,30 @@ export default function RootLayout({
         );
 
         // Try each possible path
+        let variantCreated = false;
         for (const iconPath of variant.paths) {
           try {
             const response = await fetch(iconUrl);
             if (response.ok) {
               const buffer = await response.arrayBuffer();
+              // Create directory if it doesn't exist
+              const dir = path.dirname(iconPath);
+              await fs.mkdir(dir, { recursive: true });
+              // Write the file (create or replace)
               await fs.writeFile(iconPath, Buffer.from(buffer));
               console.log(`✅ Created ${variant.name} at: ${iconPath}`);
+              variantCreated = true;
               break; // Success, move to next variant
             }
           } catch (error) {
             // Continue to next path
+            console.log(`⚠️ Could not create ${variant.name} at ${iconPath}:`, error instanceof Error ? error.message : String(error));
             continue;
           }
+        }
+        
+        if (!variantCreated) {
+          console.log(`⚠️ Failed to create ${variant.name} at any path`);
         }
       }
     } catch (error) {
@@ -2539,10 +2558,10 @@ const appConfig = {
   },
   // Site Configuration - Contact Information, Social Links, Company Info
   contact: {
-    phone: "${options.phoneNumber || options.whatsappNumber || ""}",
+    phone: "${options.phoneNumber || ""}",
     email: "${options.userEmail}",
     supportEmail: "${options.supportEmail || options.userEmail}",
-    whatsappNumber: "${options.whatsappNumber || ""}",
+    whatsappNumber: "${options.whatsappNumber || options.phoneNumber || ""}",
     address: "${options.address || ""}",
   },
   social: {

@@ -123,6 +123,12 @@ class VercelAPI {
         requestBody: envVarArray,
       });
 
+      // Log WhatsApp number specifically for debugging
+      const whatsappVar = envVarArray.find(v => v.key === 'NEXT_PUBLIC_WHATSAPP_NUMBER');
+      if (whatsappVar) {
+        console.log(`✓ WhatsApp Number environment variable set: ${whatsappVar.value || "(empty)"}`);
+      }
+
       console.log(
         `✓ Successfully configured ${envVarArray.length} environment variables for project: ${projectName}`
       );

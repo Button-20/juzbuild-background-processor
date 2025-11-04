@@ -1253,8 +1253,10 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         `Vercel project created: ${project.id} with name: ${cleanProjectName}`
       );
 
-      // Wait for project setup to complete and GitHub to propagate
-      await new Promise((resolve) => setTimeout(resolve, 8000));
+      // Wait for project setup to complete, GitHub to propagate, and environment variables to be applied
+      // Environment variables need time to propagate in Vercel's system before deployment
+      console.log("⏳ Waiting for environment variables to propagate in Vercel...");
+      await new Promise((resolve) => setTimeout(resolve, 15000)); // Increased from 8s to 15s
 
       // Update step status - Creating deployment
       if (jobId) {

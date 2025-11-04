@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface Settings {
@@ -396,6 +397,7 @@ export default function AboutPage() {
                 alt="Our Story"
                 fill
                 className="object-cover"
+                unoptimized
               />
             </div>
 
@@ -542,6 +544,7 @@ export default function AboutPage() {
                     alt={value.title}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
+                    unoptimized
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent"></div>
                 </div>
@@ -604,6 +607,7 @@ export default function AboutPage() {
             alt="Contact us"
             fill
             className="object-cover brightness-[0.3]"
+            unoptimized
           />
         </div>
         <div className="container max-w-8xl mx-auto relative z-10">
@@ -616,20 +620,20 @@ export default function AboutPage() {
                 "We're here to help you achieve your real estate goals. Get in touch with us today and let's start a conversation."}
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a
+              <Link
                 href="/contactus"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
               >
                 Contact Us
                 <Icon icon="ph:arrow-right" width={20} height={20} />
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/properties"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-full font-medium hover:bg-white/20 transition-colors border border-white/20"
               >
                 View Properties
                 <Icon icon="ph:house-line" width={20} height={20} />
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ export interface WebsiteCreationOptions {
   fullName: string;
   companyName: string;
   domainName: string;
+  logoUrl?: string; // Cloudinary URL for uploaded logo
   brandColors: string[];
   tagline: string;
   aboutSection: string;
@@ -13,6 +14,19 @@ export interface WebsiteCreationOptions {
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
+
+  // Contact Information
+  phoneNumber?: string;
+  supportEmail?: string;
+  whatsappNumber?: string;
+  address?: string;
+
+  // Social Media Links
+  facebookUrl?: string;
+  twitterUrl?: string;
+  instagramUrl?: string;
+  linkedinUrl?: string;
+  youtubeUrl?: string;
 }
 
 export interface WorkflowResult {

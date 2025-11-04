@@ -1236,6 +1236,13 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       // Prepare environment variables for the project
       const envVars = this.prepareEnvironmentVariables(options);
 
+      // Log WhatsApp number configuration for debugging
+      console.log(`📱 WhatsApp Configuration:
+        - Input WhatsApp Number: ${options.whatsappNumber || "(not provided)"}
+        - Input Phone Number: ${options.phoneNumber || "(not provided)"}
+        - Final NEXT_PUBLIC_WHATSAPP_NUMBER: ${envVars.NEXT_PUBLIC_WHATSAPP_NUMBER || "(empty)"}
+      `);
+
       const project = await vercel.createProject(
         cleanProjectName,
         repoUrl,
@@ -2543,7 +2550,7 @@ const appConfig = {
     phone: "${options.phoneNumber || options.whatsappNumber || ""}",
     email: "${options.userEmail}",
     supportEmail: "${options.supportEmail || options.userEmail}",
-    whatsappNumber: "${options.whatsappNumber || ""}",
+    whatsappNumber: "${options.whatsappNumber || options.phoneNumber || ""}",
     address: "${options.address || ""}",
   },
   social: {

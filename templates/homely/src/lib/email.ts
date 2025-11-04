@@ -28,7 +28,7 @@ export class EmailService {
   private static config: EmailConfig = {
     fromEmail: process.env.NEXT_PUBLIC_FROM_EMAIL || "noreply@homely.com",
     fromName: process.env.NEXT_PUBLIC_FROM_NAME || "Homely Real Estate",
-    ownerEmail: process.env.NEXT_PUBLIC_EMAIL || "hello@homely.com",
+    ownerEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@homely.com",
     companyName: process.env.NEXT_PUBLIC_COMPANY_NAME || "Homely Real Estate",
     websiteUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   };

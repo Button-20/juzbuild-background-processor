@@ -1,6 +1,6 @@
 "use client";
 import { navLinks } from "@/app/api/navlink";
-import { getEmail, getPhoneNumber } from "@/lib/siteConfig";
+import { getSupportEmail, getPhoneNumber } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -175,10 +175,10 @@ const Header: React.FC = () => {
               Contact
             </p>
             <Link
-              href={`mailto:${getEmail()}`}
+              href={`mailto:${getSupportEmail()}`}
               className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
             >
-              {getEmail()}
+              {getSupportEmail()}
             </Link>
             <Link
               href={`tel:${getPhoneNumber()}`}

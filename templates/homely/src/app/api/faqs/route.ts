@@ -3,52 +3,62 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    // Check if there are any FAQs in the database
-    const { total } = await FaqService.findAll({
-      isActive: true,
-      limit: 1,
-    });
-
-    // If no FAQs exist, seed with default data
-    if (total === 0) {
-      const defaultFaqs = [
-        {
-          question: "Can I personalize my homely home?",
-          answer:
-            "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
-          category: "General",
-          isActive: true,
-          order: 1,
-        },
-        {
-          question: "Where can I find homely homes?",
-          answer:
-            "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
-          category: "General",
-          isActive: true,
-          order: 2,
-        },
-        {
-          question: "What steps to buy a homely?",
-          answer:
-            "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
-          category: "Buying",
-          isActive: true,
-          order: 3,
-        },
-      ];
-
-      // Create default FAQs
-      for (const faqData of defaultFaqs) {
-        await FaqService.create(faqData);
-      }
-    }
-
     // Fetch FAQs for homepage
-    const { faqs } = await FaqService.findAll({
+    let { faqs, total } = await FaqService.findAll({
       isActive: true,
       limit: 20,
     });
+
+    // If no FAQs exist, seed with default data (but check again to avoid race conditions)
+    if (total === 0) {
+      // Double-check by querying all FAQs (including inactive ones)
+      const { total: allFaqsCount } = await FaqService.findAll({
+        limit: 1,
+      });
+
+      // Only seed if truly no FAQs exist
+      if (allFaqsCount === 0) {
+        const defaultFaqs = [
+          {
+            question: "Can I personalize my homely home?",
+            answer:
+              "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
+            category: "General",
+            isActive: true,
+            order: 1,
+          },
+          {
+            question: "Where can I find homely homes?",
+            answer:
+              "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
+            category: "General",
+            isActive: true,
+            order: 2,
+          },
+          {
+            question: "What steps to buy a homely?",
+            answer:
+              "Discover a diverse range of premium properties, from luxurious apartments to spacious villas, tailored to your needs.",
+            category: "Buying",
+            isActive: true,
+            order: 3,
+          },
+        ];
+
+        // Create default FAQs
+        for (const faqData of defaultFaqs) {
+          await FaqService.create(faqData);
+        }
+
+        // Re-fetch FAQs after seeding
+        const result = await FaqService.findAll({
+          isActive: true,
+          limit: 20,
+        });
+        faqs = result.faqs;
+        total = result.total;
+      }
+    }
 
     return NextResponse.json({
       faqs,

@@ -3,7 +3,7 @@ import { z } from "zod";
 // About Page Schema
 export const AboutPageSchema = z.object({
   storyHeading: z.string().min(1, "Story heading is required"),
-  storyImage: z.string().url("Must be a valid URL").optional(),
+  storyImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   missionText: z
     .string()
     .min(10, "Mission text must be at least 10 characters"),
@@ -18,7 +18,7 @@ export const AboutPageSchema = z.object({
           .string()
           .min(10, "Value description must be at least 10 characters"),
         icon: z.string().min(1, "Icon is required"),
-        image: z.string().url("Must be a valid URL").optional(),
+        image: z.string().url("Must be a valid URL").optional().or(z.literal("")),
       })
     )
     .length(4, "Must have exactly 4 values"),
@@ -37,7 +37,7 @@ export const AboutPageSchema = z.object({
   // CTA Section
   ctaHeading: z.string().min(1, "CTA heading is required"),
   ctaDescription: z.string().min(1, "CTA description is required"),
-  ctaImage: z.string().url("Must be a valid URL").optional(),
+  ctaImage: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

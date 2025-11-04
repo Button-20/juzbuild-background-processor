@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
     console.log("[About PUT] Starting request...");
     const body = await req.json();
     console.log("[About PUT] Body received:", JSON.stringify(body, null, 2));
-    
+
     const aboutPage = await AboutService.upsert(body);
     console.log("[About PUT] Upsert successful");
 
@@ -41,12 +41,18 @@ export async function PUT(req: NextRequest) {
     });
   } catch (error) {
     console.error("[About PUT] Error occurred:", error);
-    console.error("[About PUT] Error message:", error instanceof Error ? error.message : String(error));
-    console.error("[About PUT] Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error(
+      "[About PUT] Error message:",
+      error instanceof Error ? error.message : String(error)
+    );
+    console.error(
+      "[About PUT] Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );

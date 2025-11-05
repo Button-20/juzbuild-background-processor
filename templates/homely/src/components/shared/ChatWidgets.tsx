@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useSettings } from "@/hooks/useSettings";
 import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
@@ -29,6 +29,34 @@ export default function ChatWidgets({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to bottom when messages change
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }, 50); // Small delay to ensure DOM is updated
+  };
+
+  // Scroll to bottom when messages update or typing changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [aiMessages, isTyping]);
+
+  // Scroll to bottom when chat opens
+  useEffect(() => {
+    if (showAiChat) {
+      setTimeout(scrollToBottom, 100); // Delay for animation
+    }
+  }, [showAiChat]);
+
+  // Show widgets after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWidgets(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Don't render anything if both are disabled
   if (!isWhatsAppEnabled && !isAiChatbotEnabled) {
@@ -112,34 +140,6 @@ export default function ChatWidgets({
     return formatted;
   };
 
-  // Auto scroll to bottom when messages change
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }, 50); // Small delay to ensure DOM is updated
-  };
-
-  // Scroll to bottom when messages update or typing changes
-  useEffect(() => {
-    scrollToBottom();
-  }, [aiMessages, isTyping]);
-
-  // Scroll to bottom when chat opens
-  useEffect(() => {
-    if (showAiChat) {
-      setTimeout(scrollToBottom, 100); // Delay for animation
-    }
-  }, [showAiChat]);
-
-  // Show widgets after a short delay
-  useEffect(() => {
-    const timer = setTimeout(() => setShowWidgets(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
   const openWhatsApp = () => {
     const encodedMessage = encodeURIComponent(whatsappMessage);
     const whatsappUrl = `https://wa.me/${whatsappNumber.replace(
@@ -149,7 +149,7 @@ export default function ChatWidgets({
     window.open(whatsappUrl, "_blank");
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 

@@ -35,7 +35,11 @@ const appConfig = {
   },
   company: {
     name: "Homely Real Estate",
-    tagline: "Find Your Dream Home",
+    tagline: "Find Your Dream Home",  
+  },
+  // AI Configuration (if any)
+  ai: {
+    googleApiKey: process.env.GOOGLE_API_KEY || "",
   },
 };
 
@@ -62,6 +66,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
     NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
     NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
+    NEXT_PUBLIC_GOOGLE_API_KEY: appConfig.ai.googleApiKey,
   },
   experimental: {
     turbo: {

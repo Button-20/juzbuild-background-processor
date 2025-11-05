@@ -19,14 +19,10 @@
     "typescript"
   ],
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.1",
     "@iconify/react": "^5.2.0",
-    "@langchain/anthropic": "^0.3.28",
-    "@langchain/core": "^0.3.77",
-    "@langchain/langgraph": "^0.4.9",
-    "@langchain/langgraph-checkpoint-mongodb": "^0.1.1",
-    "@langchain/mongodb": "^0.1.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-slot": "^1.1.2",
     "@types/multer": "^2.0.0",
@@ -39,7 +35,6 @@
     "dotenv": "^17.2.2",
     "embla-carousel-react": "^8.5.2",
     "gray-matter": "^4.0.3",
-    "langchain": "^0.3.34",
     "lucide-react": "^0.479.0",
     "mongodb": "^6.20.0",
     "multer": "^2.0.2",

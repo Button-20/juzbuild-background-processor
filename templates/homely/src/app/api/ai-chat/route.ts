@@ -1,11 +1,14 @@
 import {
   ConversationState,
-  generateCustomAIResponse,
+  generateGeminiAIResponse,
+  generateLead,
   initializeConversation,
   PropertyContext,
 } from "@/lib/custom-ai";
+import { LeadService } from "@/lib/lead";
+import { getUserLocation } from "@/lib/location-currency";
 import connectDB from "@/lib/mongodb";
-import { PropertyService, PropertyTypeService } from "@/services";
+import { PropertyService } from "@/services";
 import { NextRequest, NextResponse } from "next/server";
 
 // Simple in-memory conversation storage (for demo - use Redis or DB in production)
@@ -67,43 +70,110 @@ export async function POST(request: NextRequest) {
     let conversationState = conversationStore.get(conversationKey);
 
     if (!conversationState) {
-      conversationState = initializeConversation();
+      conversationState = initializeConversation(conversationKey);
+
+      // Detect user location for currency conversion
+      try {
+        const locationInfo = await getUserLocation(request);
+        conversationState.userLocation = {
+          country: locationInfo.country,
+          countryCode: locationInfo.countryCode,
+          currency: locationInfo.currency,
+          currencySymbol: locationInfo.currencySymbol,
+        };
+      } catch (error) {
+        console.error("Failed to detect user location:", error);
+        // Default to Ghana
+        conversationState.userLocation = {
+          country: "Ghana",
+          countryCode: "GH",
+          currency: "GHS",
+          currencySymbol: "₵",
+        };
+      }
     }
 
     // Connect to database and get property context
     await connectDB();
-    const propertyContext = await getPropertyContext(message);
+    const propertyContext = await getPropertyContext();
 
-    // Generate AI response using custom system
-    const { response, newState } = generateCustomAIResponse(
+    // Add user message to history
+    const userMessage = {
+      role: "user" as const,
+      content: message,
+      timestamp: new Date(),
+    };
+
+    const conversationHistory = conversationState.conversationHistory || [];
+    conversationHistory.push(userMessage);
+
+    // Generate AI response using Gemini
+    const { response, updatedState } = await generateGeminiAIResponse(
       message,
+      conversationHistory,
       conversationState,
       propertyContext
     );
 
+    // Add assistant response to history
+    conversationHistory.push({
+      role: "assistant" as const,
+      content: response,
+      timestamp: new Date(),
+    });
+
+    // Keep only last 20 messages
+    if (conversationHistory.length > 20) {
+      conversationHistory.splice(0, conversationHistory.length - 20);
+    }
+
+    updatedState.conversationHistory = conversationHistory;
+
     // Update conversation state
-    conversationStore.set(conversationKey, newState);
+    conversationStore.set(conversationKey, updatedState);
+
+    // Check if lead should be generated
+    if (updatedState.contactInfo.email || updatedState.contactInfo.phone) {
+      try {
+        const leadData = generateLead(updatedState);
+        if (leadData && leadData.email) {
+          await LeadService.createLead({
+            name: leadData.name,
+            email: leadData.email,
+            phone: leadData.phone,
+            subject: "AI Chat - Property Inquiry",
+            message: leadData.message,
+            source: "property_inquiry" as const,
+            domain: request.headers.get("host") || "localhost",
+          });
+        }
+      } catch (leadError) {
+        console.error("Failed to create lead:", leadError);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       response: response,
       sessionId: conversationKey,
-      conversationStep: newState.step,
+      userLocation: updatedState.userLocation,
       debug: {
-        intent: newState.userIntent,
-        budget: newState.budget,
-        area: newState.area,
-        propertyType: newState.propertyType,
+        preferences: updatedState.preferences,
+        viewedProperties: updatedState.viewedProperties.length,
+        hasContact: !!(
+          updatedState.contactInfo.email || updatedState.contactInfo.phone
+        ),
+        currency: updatedState.userLocation?.currency,
       },
     });
   } catch (error) {
-    console.error("Custom AI Chat error:", error);
+    console.error("Gemini AI Chat error:", error);
 
     // Always provide a helpful fallback response
     return NextResponse.json({
       success: true,
       response:
-        "I'm here to help you with your real estate needs! 🏠 Are you looking to **buy**, **rent**, or **sell** a property?",
+        "I'm here to help you find your perfect property! 🏠 Tell me about your preferences - budget, location, bedrooms, etc.",
     });
   }
 }
@@ -117,138 +187,30 @@ export async function GET() {
   });
 }
 
-async function getPropertyContext(
-  userMessage: string
-): Promise<PropertyContext> {
+async function getPropertyContext(): Promise<PropertyContext> {
   try {
-    const message = userMessage.toLowerCase();
-    let properties: any[] = [];
-    let propertyTypes: any[] = [];
+    const propertiesResult = await PropertyService.findAll({
+      isActive: true,
+      limit: 50,
+    });
 
-    // Get property types
-    const propertyTypesResult = await PropertyTypeService.findAll({});
-    propertyTypes = propertyTypesResult.propertyTypes;
+    const properties = propertiesResult.properties || [];
 
-    // Search for relevant properties based on message content
-    if (
-      message.includes("villa") ||
-      message.includes("apartment") ||
-      message.includes("office") ||
-      message.includes("property") ||
-      message.includes("rent") ||
-      message.includes("buy") ||
-      message.includes("$") ||
-      /\d{3,}/.test(message)
-    ) {
-      // Build search query
-      const searchQuery: any = {};
-
-      // Filter by property type if mentioned
-      if (message.includes("villa")) {
-        const villaType = propertyTypes.find((pt) =>
-          pt.name.toLowerCase().includes("villa")
-        );
-        if (villaType) searchQuery.propertyType = villaType._id;
-      } else if (message.includes("apartment")) {
-        const aptType = propertyTypes.find((pt) =>
-          pt.name.toLowerCase().includes("apartment")
-        );
-        if (aptType) searchQuery.propertyType = aptType._id;
-      } else if (message.includes("office")) {
-        const officeType = propertyTypes.find((pt) =>
-          pt.name.toLowerCase().includes("office")
-        );
-        if (officeType) searchQuery.propertyType = officeType._id;
-      }
-
-      // Filter by price range if mentioned
-      if (message.includes("cheap") || message.includes("affordable")) {
-        searchQuery.price = { $lt: 500000 };
-      } else if (message.includes("luxury") || message.includes("expensive")) {
-        searchQuery.price = { $gt: 1000000 };
-      }
-
-      // Extract budget numbers
-      const budgetMatch = message.match(/\$?(\d{1,3}(?:,?\d{3,6})?)/);
-      if (budgetMatch) {
-        const budget = parseInt(budgetMatch[1].replace(",", ""));
-        if (budget < 5000) {
-          // Likely monthly rent - convert to rough purchase price
-          searchQuery.price = { $lt: budget * 300 };
-        } else {
-          // Likely purchase price or high rent
-          searchQuery.price = { $lte: budget };
-        }
-      }
-
-      // Filter by location keywords
-      const locationKeywords = extractLocationKeywords(message);
-      if (locationKeywords.length > 0) {
-        searchQuery.$or = locationKeywords.map((keyword) => ({
-          $or: [
-            { location: new RegExp(keyword, "i") },
-            { address: new RegExp(keyword, "i") },
-            { title: new RegExp(keyword, "i") },
-          ],
-        }));
-      }
-
-      // Get matching properties
-      const { db } = await connectDB();
-      const propertiesCollection = db.collection("properties");
-
-      properties = await propertiesCollection
-        .find(searchQuery)
-        .limit(6)
-        .toArray();
-
-      // If no specific matches, get featured properties
-      if (properties.length === 0) {
-        properties = await PropertyService.findFeatured(6);
-      }
-    }
-
-    // Get general statistics for context
-    const stats = await PropertyService.getStats();
-    const { db } = await connectDB();
-    const propertiesCollection = db.collection("properties");
-    const averagePrice = await propertiesCollection
-      .aggregate([{ $group: { _id: null, avgPrice: { $avg: "$price" } } }])
-      .toArray();
+    const prices = properties.map((p) => p.price).filter(Boolean);
+    const priceRange =
+      prices.length > 0
+        ? { min: Math.min(...prices), max: Math.max(...prices) }
+        : { min: 0, max: 0 };
 
     return {
       properties,
-      propertyTypes,
-      totalProperties: stats.total,
-      averagePrice: averagePrice[0]?.avgPrice || 0,
+      priceRange,
     };
   } catch (error) {
     console.error("Error getting property context:", error);
     return {
       properties: [],
-      propertyTypes: [],
-      totalProperties: 0,
-      averagePrice: 0,
+      priceRange: { min: 0, max: 0 },
     };
   }
-}
-
-function extractLocationKeywords(message: string): string[] {
-  const locationIndicators = [
-    /\bin\s+([a-zA-Z\s]+?)(?:\s|$|[.!?])/gi,
-    /\bnear\s+([a-zA-Z\s]+?)(?:\s|$|[.!?])/gi,
-    /\sat\s+([a-zA-Z\s]+?)(?:\s|$|[.!?])/gi,
-  ];
-
-  const keywords: string[] = [];
-  locationIndicators.forEach((regex) => {
-    const matches = message.matchAll(regex);
-    for (const match of matches) {
-      if (match[1] && match[1].trim().length > 2) {
-        keywords.push(match[1].trim());
-      }
-    }
-  });
-
-  return keywords;
 }

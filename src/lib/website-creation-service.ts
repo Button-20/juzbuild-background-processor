@@ -147,6 +147,9 @@ class WebsiteCreationService {
       CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
       CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
 
+      // AI Configuration - Gemini API for chatbot
+      GOOGLE_API_KEY: options.geminiApiKey || "",
+
       // Public configuration - Company Info
       NEXT_PUBLIC_COMPANY_NAME: options.companyName,
       NEXT_PUBLIC_COMPANY_TAGLINE: options.tagline,

@@ -19,7 +19,7 @@ export default function ChatWidgets({
   const [aiMessages, setAiMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm your AI real estate assistant. I have access to our property database and can help you find the perfect property based on your preferences. What are you looking for today?",
+      text: "Hi! 👋 I'm your **AI real estate assistant**. I have access to our property database and can help you find the perfect property based on your preferences.\n\nI can help you with:\n• Property searches by location\n• Budget recommendations\n• Property details and features\n• Scheduling viewings\n\nWhat are you looking for today?",
       sender: "bot",
       timestamp: new Date(),
     },
@@ -27,6 +27,83 @@ export default function ChatWidgets({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Format markdown-like text to HTML
+  const formatMessageText = (text: string): string => {
+    let formatted = text;
+
+    // Bold text: **text** or __text__
+    formatted = formatted.replace(
+      /\*\*(.+?)\*\*/g,
+      '<strong class="font-semibold">$1</strong>'
+    );
+    formatted = formatted.replace(
+      /__(.+?)__/g,
+      '<strong class="font-semibold">$1</strong>'
+    );
+
+    // Italic text: *text* or _text_ (but not if already bold)
+    formatted = formatted.replace(
+      /(?<!\*)\*([^*]+?)\*(?!\*)/g,
+      '<em class="italic">$1</em>'
+    );
+    formatted = formatted.replace(
+      /(?<!_)_([^_]+?)_(?!_)/g,
+      '<em class="italic">$1</em>'
+    );
+
+    // Code blocks: `code`
+    formatted = formatted.replace(
+      /`(.+?)`/g,
+      '<code class="bg-gray-200 dark:bg-gray-600 px-1 py-0.5 rounded text-xs">$1</code>'
+    );
+
+    // Links: [text](url)
+    formatted = formatted.replace(
+      /\[(.+?)\]\((.+?)\)/g,
+      '<a href="$2" target="_blank" class="text-blue-600 dark:text-blue-400 underline">$1</a>'
+    );
+
+    // Emoji-prefixed lines (for better formatting)
+    formatted = formatted.replace(
+      /^([🏠💰📍🛏️🚿✨📧📱👤🔄📞🌍]+)\s/gm,
+      '<span class="inline-block mr-1">$1</span>'
+    );
+
+    // Line breaks (preserve double line breaks as paragraphs)
+    formatted = formatted.replace(/\n\n/g, '</p><p class="mt-2">');
+    formatted = formatted.replace(/\n/g, "<br />");
+
+    // Wrap in paragraph if not already
+    if (!formatted.startsWith("<p")) {
+      formatted = "<p>" + formatted + "</p>";
+    }
+
+    // Numbered lists: 1. item
+    formatted = formatted.replace(
+      /<p>(\d+)\.\s(.+?)<\/p>/g,
+      '<li class="ml-4">$2</li>'
+    );
+
+    // Bullet points: lines starting with - or •
+    formatted = formatted.replace(
+      /<p>[•\-]\s(.+?)<\/p>/g,
+      '<li class="ml-4">$1</li>'
+    );
+
+    // Wrap consecutive list items in ul
+    formatted = formatted.replace(
+      /(<li[\s\S]*?<\/li>)(?=<li|$)/g,
+      function (match) {
+        if (!match.includes("<ul>")) {
+          return '<ul class="list-disc space-y-1 my-2">' + match + "</ul>";
+        }
+        return match;
+      }
+    );
+
+    return formatted;
+  };
 
   // Auto scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -233,9 +310,12 @@ export default function ChatWidgets({
                         : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.text}
-                    </p>
+                    <div
+                      className="text-sm leading-relaxed [&>p]:m-0 [&>ul]:my-1 [&>strong]:font-bold [&>em]:italic [&_a]:underline"
+                      dangerouslySetInnerHTML={{
+                        __html: formatMessageText(message.text),
+                      }}
+                    ></div>
                   </div>
                 </div>
               ))}

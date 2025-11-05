@@ -14,6 +14,8 @@ export interface WebsiteCreationOptions {
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
+  leadCaptureMethods?: string[];
+  geminiApiKey?: string;
 
   // Contact Information
   phoneNumber?: string;

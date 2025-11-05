@@ -101,6 +101,7 @@ class VercelAPI {
         "CLOUDINARY_API_KEY",
         "CLOUDINARY_API_SECRET",
         "CLOUDINARY_CLOUD_NAME",
+        "GOOGLE_API_KEY",
       ].includes(key);
 
       // Determine target environments

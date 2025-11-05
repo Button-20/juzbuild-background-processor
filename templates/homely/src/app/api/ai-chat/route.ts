@@ -132,8 +132,14 @@ export async function POST(request: NextRequest) {
     // Update conversation state
     conversationStore.set(conversationKey, updatedState);
 
-    // Check if lead should be generated
-    if (updatedState.contactInfo.email || updatedState.contactInfo.phone) {
+    // Check if lead should be generated (with all required info)
+    const hasCompleteContactInfo =
+      updatedState.contactInfo.email &&
+      updatedState.contactInfo.phone &&
+      updatedState.contactInfo.budget &&
+      updatedState.contactInfo.timeline;
+
+    if (hasCompleteContactInfo) {
       try {
         const leadData = generateLead(updatedState);
         if (leadData && leadData.email) {
@@ -163,6 +169,8 @@ export async function POST(request: NextRequest) {
         hasContact: !!(
           updatedState.contactInfo.email || updatedState.contactInfo.phone
         ),
+        hasBudget: !!updatedState.contactInfo.budget,
+        hasTimeline: !!updatedState.contactInfo.timeline,
         currency: updatedState.userLocation?.currency,
       },
     });

@@ -30,12 +30,15 @@ export interface ConversationState {
       max?: number;
     };
     location?: string;
+    timeline?: string; // When they want to move/buy
   };
   viewedProperties: string[];
   contactInfo: {
     name?: string;
     email?: string;
     phone?: string;
+    budget?: string; // User's stated budget
+    timeline?: string; // User's stated timeline
   };
   conversationHistory: ChatMessage[];
   lastActivity: Date;
@@ -119,16 +122,24 @@ PRICE RANGE: ${formatPriceWithCurrency(
 USER PREFERENCES: ${JSON.stringify(state.preferences)}
 CONTACT INFO: Email ${
     state.contactInfo.email ? "collected" : "needed"
-  }, Phone ${state.contactInfo.phone ? "collected" : "needed"}
+  }, Phone ${state.contactInfo.phone ? "collected" : "needed"}, Budget ${
+    state.contactInfo.budget ? "collected" : "needed"
+  }, Timeline ${state.contactInfo.timeline ? "collected" : "needed"}
 
 INSTRUCTIONS:
 1. Help users find properties matching their budget, bedrooms, bathrooms, and location
 2. When showing properties, format them clearly with emojis (🏠 💰 📍 🛏️ 🚿)
 3. IMPORTANT: Always show prices in ${userCurrency} (${currencySymbol}) format from the provided data
-4. When users want to view a property, collect their name, email, and phone
-5. After collecting contact info, confirm lead creation and that team will follow up
-6. Be conversational, friendly, and helpful
-7. Mention that prices are displayed in their local currency (${userCurrency}) but properties are in Ghana
+4. When users express interest in viewing a property, collect ALL of the following:
+   - Name
+   - Email address
+   - Phone number
+   - **Budget range** (what they can afford)
+   - **Timeline** (when they plan to move/buy - e.g., "immediately", "within 3 months", "next year")
+5. Naturally ask for budget and timeline during the conversation if not provided
+6. After collecting ALL contact info (including budget and timeline), confirm lead creation and that team will follow up
+7. Be conversational, friendly, and helpful
+8. Mention that prices are displayed in their local currency (${userCurrency}) but properties are in Ghana
 
 Always be specific about properties and help users schedule viewings.`;
 }
@@ -169,6 +180,41 @@ export function extractContactInfo(
       const match = message.match(pattern);
       if (match) {
         info.name = match[1];
+        break;
+      }
+    }
+  }
+
+  // Extract budget information
+  if (!info.budget) {
+    const budgetPatterns = [
+      /budget\s+(?:is|of|around|about)?\s*(?:GHS|₵|\$|USD|EUR|GBP)?\s*([\d,]+(?:\s*(?:to|-)\s*[\d,]+)?)/i,
+      /(?:afford|spend|looking\s+(?:to\s+spend|at))\s+(?:up\s+to\s+)?(?:GHS|₵|\$|USD|EUR|GBP)?\s*([\d,]+(?:\s*(?:to|-)\s*[\d,]+)?)/i,
+      /(?:GHS|₵|\$|USD|EUR|GBP)\s*([\d,]+(?:\s*(?:to|-)\s*[\d,]+)?)\s+(?:budget|range)/i,
+    ];
+
+    for (const pattern of budgetPatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        info.budget = match[1].replace(/,/g, "");
+        break;
+      }
+    }
+  }
+
+  // Extract timeline information
+  if (!info.timeline) {
+    const timelinePatterns = [
+      /(?:move|buy|purchase|looking)\s+(?:in|within|by|around)\s+((?:next\s+)?(?:week|month|year|immediately|asap|soon|[0-9]+\s+(?:weeks?|months?|years?)))/i,
+      /timeline\s+(?:is|of)?\s*:?\s*([^\n,.]+)/i,
+      /(?:need|want|planning)\s+(?:it|to\s+move|to\s+buy)\s+(?:by|within|in)\s+((?:next\s+)?(?:week|month|year|immediately|asap|soon|[0-9]+\s+(?:weeks?|months?|years?)))/i,
+      /(?:immediately|asap|urgently|as\s+soon\s+as\s+possible)/i,
+    ];
+
+    for (const pattern of timelinePatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        info.timeline = match[1] || "immediately";
         break;
       }
     }
@@ -246,6 +292,14 @@ export function generateLead(state: ConversationState) {
     ? ` (Budget: ${formatPrice(preferences.budget.min || 0)} - ${formatPrice(
         preferences.budget.max || 0
       )})`
+    : contactInfo.budget
+    ? ` (Budget: ${contactInfo.budget})`
+    : "";
+
+  const timelineStr = contactInfo.timeline
+    ? ` | Timeline: ${contactInfo.timeline}`
+    : preferences.timeline
+    ? ` | Timeline: ${preferences.timeline}`
     : "";
 
   const preferencesStr =
@@ -262,7 +316,7 @@ export function generateLead(state: ConversationState) {
     name: contactInfo.name || "AI Chat User",
     email: contactInfo.email,
     phone: contactInfo.phone,
-    message: `AI Chat Inquiry - Looking for: ${preferencesStr}${budgetStr}. Viewed ${viewedProperties.length} properties.`,
+    message: `AI Chat Inquiry - Looking for: ${preferencesStr}${budgetStr}${timelineStr}. Viewed ${viewedProperties.length} properties.`,
     source: "ai_chat" as const,
     propertyId: viewedProperties[viewedProperties.length - 1] || undefined,
   };

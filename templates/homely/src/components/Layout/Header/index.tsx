@@ -1,6 +1,7 @@
 "use client";
 import { navLinks } from "@/app/api/navlink";
 import { getSupportEmail, getPhoneNumber } from "@/lib/siteConfig";
+import { useSettings } from "@/hooks/useSettings";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -14,6 +15,7 @@ const Header: React.FC = () => {
   const [navbarOpen, setNavbarOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  const { isPhoneEnabled, isEmailEnabled } = useSettings();
 
   const sideMenuRef = useRef<HTMLDivElement>(null);
 
@@ -85,21 +87,24 @@ const Header: React.FC = () => {
                 className="dark:block hidden text-white"
               />
             </button>
-            <div className={`hidden md:block`}>
-              <Link
-                href={`tel:${getPhoneNumber()}`}
-                className={`text-base text-inherit flex items-center gap-2 border-r pr-6 ${
-                  isHomepage
-                    ? sticky
-                      ? "text-dark dark:text-white hover:text-primary border-dark dark:border-white"
-                      : "text-white hover:text-primary"
-                    : "text-dark hover:text-primary"
-                }`}
-              >
-                <Icon icon={"ph:phone-bold"} width={24} height={24} />
-                {getPhoneNumber()}
-              </Link>
-            </div>
+            {/* Only show phone if enabled */}
+            {isPhoneEnabled && (
+              <div className={`hidden md:block`}>
+                <Link
+                  href={`tel:${getPhoneNumber()}`}
+                  className={`text-base text-inherit flex items-center gap-2 border-r pr-6 ${
+                    isHomepage
+                      ? sticky
+                        ? "text-dark dark:text-white hover:text-primary border-dark dark:border-white"
+                        : "text-white hover:text-primary"
+                      : "text-dark hover:text-primary"
+                  }`}
+                >
+                  <Icon icon={"ph:phone-bold"} width={24} height={24} />
+                  {getPhoneNumber()}
+                </Link>
+              </div>
+            )}
             <div>
               <button
                 onClick={() => setNavbarOpen(!navbarOpen)}
@@ -174,18 +179,24 @@ const Header: React.FC = () => {
             <p className="text-base sm:text-xm font-normal text-white/40">
               Contact
             </p>
-            <Link
-              href={`mailto:${getSupportEmail()}`}
-              className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
-            >
-              {getSupportEmail()}
-            </Link>
-            <Link
-              href={`tel:${getPhoneNumber()}`}
-              className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
-            >
-              {getPhoneNumber()}{" "}
-            </Link>
+            {/* Only show email if enabled */}
+            {isEmailEnabled && (
+              <Link
+                href={`mailto:${getSupportEmail()}`}
+                className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
+              >
+                {getSupportEmail()}
+              </Link>
+            )}
+            {/* Only show phone if enabled */}
+            {isPhoneEnabled && (
+              <Link
+                href={`tel:${getPhoneNumber()}`}
+                className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
+              >
+                {getPhoneNumber()}{" "}
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
 
 import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
+import { useSettings } from "@/hooks/useSettings";
 
 interface ChatWidgetsProps {
   whatsappNumber?: string;
@@ -16,6 +17,7 @@ export default function ChatWidgets({
 }: ChatWidgetsProps) {
   const [showAiChat, setShowAiChat] = useState(false);
   const [showWidgets, setShowWidgets] = useState(false);
+  const { isWhatsAppEnabled, isAiChatbotEnabled } = useSettings();
   const [aiMessages, setAiMessages] = useState([
     {
       id: 1,
@@ -27,6 +29,11 @@ export default function ChatWidgets({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Don't render anything if both are disabled
+  if (!isWhatsAppEnabled && !isAiChatbotEnabled) {
+    return null;
+  }
 
   // Format markdown-like text to HTML
   const formatMessageText = (text: string): string => {
@@ -369,30 +376,34 @@ export default function ChatWidgets({
 
         {/* Widget Buttons */}
         <div className="flex flex-col gap-3">
-          {/* WhatsApp Button */}
-          <button
-            onClick={openWhatsApp}
-            className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group animate-in slide-in-from-right-5 fade-in"
-            title="Chat on WhatsApp"
-          >
-            <Icon icon="ph:whatsapp-logo-fill" width={24} height={24} />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              Chat on WhatsApp
-            </span>
-          </button>
+          {/* WhatsApp Button - Only show if enabled */}
+          {isWhatsAppEnabled && (
+            <button
+              onClick={openWhatsApp}
+              className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group animate-in slide-in-from-right-5 fade-in"
+              title="Chat on WhatsApp"
+            >
+              <Icon icon="ph:whatsapp-logo-fill" width={24} height={24} />
+              <span className="absolute right-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                Chat on WhatsApp
+              </span>
+            </button>
+          )}
 
-          {/* AI Chat Button */}
-          <button
-            onClick={() => setShowAiChat(!showAiChat)}
-            className="bg-primary hover:bg-primary/90 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group animate-in slide-in-from-right-5 fade-in"
-            title="AI Assistant"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <Icon icon="ph:robot-fill" width={24} height={24} />
-            <span className="absolute right-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              AI Assistant
-            </span>
-          </button>
+          {/* AI Chat Button - Only show if enabled */}
+          {isAiChatbotEnabled && (
+            <button
+              onClick={() => setShowAiChat(!showAiChat)}
+              className="bg-primary hover:bg-primary/90 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group animate-in slide-in-from-right-5 fade-in"
+              title="AI Assistant"
+              style={{ animationDelay: "0.1s" }}
+            >
+              <Icon icon="ph:robot-fill" width={24} height={24} />
+              <span className="absolute right-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                AI Assistant
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

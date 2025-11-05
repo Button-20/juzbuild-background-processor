@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         accentColor: settings.accentColor || "#10B981",
         theme: settings.theme || "homely",
         contactMethods: settings.contactMethods || [],
+        leadCaptureMethods: settings.leadCaptureMethods || [],
         userEmail: settings.userEmail || "",
       },
     });

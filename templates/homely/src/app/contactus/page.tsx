@@ -1,6 +1,7 @@
 "use client";
 
 import { getAddress, getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
+import { useSettings } from "@/hooks/useSettings";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,6 +36,7 @@ export default function ContactUs() {
     type: "success" | "error" | null;
     message: string;
   }>({ type: null, message: "" });
+  const { isPhoneEnabled, isEmailEnabled, isContactFormEnabled } = useSettings();
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -137,22 +139,28 @@ export default function ContactUs() {
               </p>
             </div>
             <div className="absolute bottom-6 left-6 lg:bottom-12 lg:left-12 flex flex-col gap-4 text-white">
-              <Link href={`tel:${getPhoneNumber()}`} className="w-fit">
-                <div className="flex items-center gap-4 group w-fit">
-                  <Icon icon={"ph:phone"} width={32} height={32} />
-                  <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
-                    {getPhoneNumber()}
-                  </p>
-                </div>
-              </Link>
-              <Link href={`mailto:${getSupportEmail()}`} className="w-fit">
-                <div className="flex items-center gap-4 group w-fit">
-                  <Icon icon={"ph:envelope-simple"} width={32} height={32} />
-                  <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
-                    {getSupportEmail()}
-                  </p>
-                </div>
-              </Link>
+              {/* Only show phone if enabled */}
+              {isPhoneEnabled && (
+                <Link href={`tel:${getPhoneNumber()}`} className="w-fit">
+                  <div className="flex items-center gap-4 group w-fit">
+                    <Icon icon={"ph:phone"} width={32} height={32} />
+                    <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
+                      {getPhoneNumber()}
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {/* Only show email if enabled */}
+              {isEmailEnabled && (
+                <Link href={`mailto:${getSupportEmail()}`} className="w-fit">
+                  <div className="flex items-center gap-4 group w-fit">
+                    <Icon icon={"ph:envelope-simple"} width={32} height={32} />
+                    <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
+                      {getSupportEmail()}
+                    </p>
+                  </div>
+                </Link>
+              )}
               <div className="flex items-center gap-4">
                 <Icon icon={"ph:map-pin"} width={32} height={32} />
                 <p className="text-sm xs:text-base mobile:text-xm font-normal">
@@ -162,31 +170,44 @@ export default function ContactUs() {
             </div>
           </div>
           <div className="flex-1">
-            {/* Status Messages */}
-            {submitStatus.type && (
-              <div
-                className={`mb-6 p-4 rounded-lg ${
-                  submitStatus.type === "success"
-                    ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
-                    : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon
-                    icon={
-                      submitStatus.type === "success"
-                        ? "ph:check-circle"
-                        : "ph:warning-circle"
-                    }
-                    width={20}
-                    height={20}
-                  />
-                  <p className="text-sm font-medium">{submitStatus.message}</p>
+            {/* Show message if contact form is disabled */}
+            {!isContactFormEnabled ? (
+              <div className="flex items-center justify-center h-full min-h-[400px]">
+                <div className="text-center">
+                  <Icon icon="ph:envelope-simple-slash" width={64} height={64} className="mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-2xl font-semibold mb-2">Contact Form Unavailable</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Please use the contact information provided to reach us.
+                  </p>
                 </div>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Status Messages */}
+                {submitStatus.type && (
+                  <div
+                    className={`mb-6 p-4 rounded-lg ${
+                      submitStatus.type === "success"
+                        ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
+                        : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        icon={
+                          submitStatus.type === "success"
+                            ? "ph:check-circle"
+                            : "ph:warning-circle"
+                        }
+                        width={20}
+                        height={20}
+                      />
+                      <p className="text-sm font-medium">{submitStatus.message}</p>
+                    </div>
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit}>
               <div className="flex flex-col gap-8">
                 <div className="flex flex-col lg:flex-row gap-6">
                   <input
@@ -315,6 +336,8 @@ export default function ContactUs() {
                 </button>
               </div>
             </form>
+              </>
+            )}
           </div>
         </div>
       </div>

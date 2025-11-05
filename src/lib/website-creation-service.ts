@@ -58,6 +58,7 @@ interface WebsiteCreationOptions {
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
+  leadCaptureMethods?: string[];
   geminiApiKey?: string;
 
   // Contact Information
@@ -686,6 +687,7 @@ class WebsiteCreationService {
             tagline: options.tagline,
             aboutSection: options.aboutSection,
             contactMethods: options.preferredContactMethod,
+            leadCaptureMethods: options.leadCaptureMethods || [],
             userEmail: options.userEmail,
             createdAt: new Date(),
             updatedAt: new Date(),

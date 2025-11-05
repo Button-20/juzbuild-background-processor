@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         theme: settings.theme || "homely",
         contactMethods: settings.contactMethods || [],
         leadCaptureMethods: settings.leadCaptureMethods || [],
+        includedPages: settings.includedPages || [],
         userEmail: settings.userEmail || "",
       },
     });

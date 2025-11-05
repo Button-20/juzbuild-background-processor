@@ -1,5 +1,5 @@
 "use client";
-import { navLinks } from "@/app/api/navlink";
+import { NavLinks } from "@/types/navlink";
 import { useSettings } from "@/hooks/useSettings";
 import { getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
@@ -13,11 +13,41 @@ import NavLink from "./Navigation/NavLink";
 const Header: React.FC = () => {
   const [sticky, setSticky] = useState(false);
   const [navbarOpen, setNavbarOpen] = useState(false);
+  const [navLinks, setNavLinks] = useState<NavLinks[]>([]);
+  const [isLoadingNav, setIsLoadingNav] = useState(true);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const { isPhoneEnabled, isEmailEnabled } = useSettings();
 
   const sideMenuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch navigation links
+  useEffect(() => {
+    const fetchNavLinks = async () => {
+      try {
+        const response = await fetch("/api/nav-links");
+        const data = await response.json();
+
+        if (data.success) {
+          setNavLinks(data.navLinks);
+        } else {
+          throw new Error("Failed to fetch navigation links");
+        }
+      } catch (error) {
+        console.error("Error fetching navigation links:", error);
+        // Fallback to basic navigation
+        setNavLinks([
+          { label: "Home", href: "/" },
+          { label: "Properties", href: "/properties" },
+          { label: "Contact", href: "/contactus" },
+        ]);
+      } finally {
+        setIsLoadingNav(false);
+      }
+    };
+
+    fetchNavLinks();
+  }, []);
 
   const handleClickOutside = (event: MouseEvent) => {
     if (

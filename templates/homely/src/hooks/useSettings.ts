@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 interface Settings {
   contactMethods: string[];
   leadCaptureMethods: string[];
+  includedPages: string[];
 }
 
 const defaultSettings: Settings = {
   contactMethods: [],
   leadCaptureMethods: [],
+  includedPages: [],
 };
 
 let cachedSettings: Settings | null = null;
@@ -31,6 +33,7 @@ const fetchSettings = async (): Promise<Settings> => {
         cachedSettings = {
           contactMethods: data.settings.contactMethods || [],
           leadCaptureMethods: data.settings.leadCaptureMethods || [],
+          includedPages: data.settings.includedPages || [],
         };
         return cachedSettings;
       }
@@ -68,16 +71,23 @@ export const useSettings = () => {
     return settings.leadCaptureMethods.includes(method);
   };
 
+  const isPageIncluded = (page: string) => {
+    return settings.includedPages.includes(page);
+  };
+
   return {
     settings,
     loading,
     isContactMethodEnabled,
     isLeadCaptureMethodEnabled,
+    isPageIncluded,
     isWhatsAppEnabled: isContactMethodEnabled("WhatsApp"),
     isEmailEnabled: isContactMethodEnabled("Email"),
     isPhoneEnabled: isContactMethodEnabled("Phone"),
     isAiChatbotEnabled: isLeadCaptureMethodEnabled("AI Chatbot"),
     isContactFormEnabled: isLeadCaptureMethodEnabled("Contact Form"),
     isInquiryFormEnabled: isLeadCaptureMethodEnabled("Inquiry Form"),
+    isBlogEnabled: isPageIncluded("blog"),
+    isAboutEnabled: isPageIncluded("about"),
   };
 };

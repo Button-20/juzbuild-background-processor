@@ -688,6 +688,7 @@ class WebsiteCreationService {
             aboutSection: options.aboutSection,
             contactMethods: options.preferredContactMethod,
             leadCaptureMethods: options.leadCaptureMethods || [],
+            includedPages: options.includedPages || [],
             userEmail: options.userEmail,
             createdAt: new Date(),
             updatedAt: new Date(),

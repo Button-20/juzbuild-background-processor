@@ -66,7 +66,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
     NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
     NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
-    NEXT_PUBLIC_GOOGLE_API_KEY: appConfig.ai.googleApiKey,
+    GOOGLE_API_KEY: appConfig.ai.googleApiKey,
   },
   experimental: {
     turbo: {

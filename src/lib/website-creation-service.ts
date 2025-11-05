@@ -150,7 +150,6 @@ class WebsiteCreationService {
 
       // AI Configuration - Gemini API for chatbot
       GOOGLE_API_KEY: options.geminiApiKey || "",
-      NEXT_PUBLIC_GOOGLE_API_KEY: options.geminiApiKey || "",
 
       // Public configuration - Company Info
       NEXT_PUBLIC_COMPANY_NAME: options.companyName,
@@ -190,15 +189,14 @@ class WebsiteCreationService {
     console.log(`🤖 AI Configuration:
       - Input Gemini API Key: ${options.geminiApiKey ? "(provided)" : "(not provided)"}
       - GOOGLE_API_KEY: ${envVars.GOOGLE_API_KEY || "(empty)"}
-      - NEXT_PUBLIC_GOOGLE_API_KEY: ${envVars.NEXT_PUBLIC_GOOGLE_API_KEY || "(empty)"}
     `);
 
     // Filter out empty values to avoid setting empty environment variables
     // Exception: Keep AI-related keys even if empty for proper configuration
     const filteredEnvVars: Record<string, string> = {};
     for (const [key, value] of Object.entries(envVars)) {
-      // Always include Google API keys (even if empty) for AI configuration
-      if (key === "GOOGLE_API_KEY" || key === "NEXT_PUBLIC_GOOGLE_API_KEY") {
+      // Always include Google API key (even if empty) for AI configuration
+      if (key === "GOOGLE_API_KEY") {
         filteredEnvVars[key] = value || "";
       } else if (value && value.trim() !== "") {
         filteredEnvVars[key] = value;
@@ -2612,7 +2610,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
     NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
     NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
-    NEXT_PUBLIC_GOOGLE_API_KEY: appConfig.ai.googleApiKey,
+    GOOGLE_API_KEY: appConfig.ai.googleApiKey,
   },
   experimental: {
     turbo: {

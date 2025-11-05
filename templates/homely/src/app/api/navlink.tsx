@@ -7,7 +7,7 @@ const getIncludedPages = async (): Promise<string[]> => {
     const { db } = await connectDB();
     const settingsCollection = db.collection("settings");
     const settings = await settingsCollection.findOne({});
-    
+
     return settings?.includedPages || [];
   } catch (error) {
     console.error("Error fetching included pages:", error);
@@ -21,28 +21,28 @@ export const getNavLinks = async (): Promise<NavLinks[]> => {
   try {
     // Get included pages from settings
     const includedPages = await getIncludedPages();
-    
+
     const navLinks: NavLinks[] = [];
-    
+
     // Home is always included (required)
     navLinks.push({ label: "Home", href: "/" });
-    
+
     // Conditionally add About
     if (includedPages.includes("about")) {
       navLinks.push({ label: "About", href: "/about" });
     }
-    
+
     // Properties/Listings is always included (required)
     navLinks.push({ label: "Properties", href: "/properties" });
-    
+
     // Conditionally add Blog
     if (includedPages.includes("blog")) {
       navLinks.push({ label: "Blog", href: "/blogs" });
     }
-    
+
     // Contact is always included (required)
     navLinks.push({ label: "Contact", href: "/contactus" });
-    
+
     return navLinks;
   } catch (error) {
     console.error("Error fetching navigation links:", error);

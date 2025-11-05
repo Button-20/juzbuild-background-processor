@@ -102,6 +102,7 @@ class VercelAPI {
         "CLOUDINARY_API_SECRET",
         "CLOUDINARY_CLOUD_NAME",
         "GOOGLE_API_KEY",
+        "NEXT_PUBLIC_GOOGLE_API_KEY",
       ].includes(key);
 
       // Determine target environments
@@ -123,6 +124,18 @@ class VercelAPI {
         upsert: "true",
         requestBody: envVarArray,
       });
+
+      // Log Google API Key specifically for debugging
+      const googleApiKeyVar = envVarArray.find(
+        (v) => v.key === "GOOGLE_API_KEY" || v.key === "NEXT_PUBLIC_GOOGLE_API_KEY"
+      );
+      if (googleApiKeyVar) {
+        console.log(
+          `✓ Google API Key environment variable set: ${
+            googleApiKeyVar.value ? "(provided)" : "(empty)"
+          }`
+        );
+      }
 
       // Log WhatsApp number specifically for debugging
       const whatsappVar = envVarArray.find(

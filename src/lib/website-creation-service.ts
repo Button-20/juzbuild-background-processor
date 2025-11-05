@@ -186,10 +186,21 @@ class WebsiteCreationService {
       AUTHOR_NAME: options.fullName,
     };
 
+    // Log Gemini API Key configuration for debugging
+    console.log(`🤖 AI Configuration:
+      - Input Gemini API Key: ${options.geminiApiKey ? "(provided)" : "(not provided)"}
+      - GOOGLE_API_KEY: ${envVars.GOOGLE_API_KEY || "(empty)"}
+      - NEXT_PUBLIC_GOOGLE_API_KEY: ${envVars.NEXT_PUBLIC_GOOGLE_API_KEY || "(empty)"}
+    `);
+
     // Filter out empty values to avoid setting empty environment variables
+    // Exception: Keep AI-related keys even if empty for proper configuration
     const filteredEnvVars: Record<string, string> = {};
     for (const [key, value] of Object.entries(envVars)) {
-      if (value && value.trim() !== "") {
+      // Always include Google API keys (even if empty) for AI configuration
+      if (key === "GOOGLE_API_KEY" || key === "NEXT_PUBLIC_GOOGLE_API_KEY") {
+        filteredEnvVars[key] = value || "";
+      } else if (value && value.trim() !== "") {
         filteredEnvVars[key] = value;
       }
     }

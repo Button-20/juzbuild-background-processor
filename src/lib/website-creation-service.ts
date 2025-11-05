@@ -187,7 +187,9 @@ class WebsiteCreationService {
 
     // Log Gemini API Key configuration for debugging
     console.log(`🤖 AI Configuration:
-      - Input Gemini API Key: ${options.geminiApiKey ? "(provided)" : "(not provided)"}
+      - Input Gemini API Key: ${
+        options.geminiApiKey ? "(provided)" : "(not provided)"
+      }
       - GOOGLE_API_KEY: ${envVars.GOOGLE_API_KEY || "(empty)"}
     `);
 

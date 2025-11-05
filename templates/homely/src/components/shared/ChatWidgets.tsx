@@ -3,8 +3,8 @@
 import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
 
-import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
 import { useSettings } from "@/hooks/useSettings";
+import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
 
 interface ChatWidgetsProps {
   whatsappNumber?: string;

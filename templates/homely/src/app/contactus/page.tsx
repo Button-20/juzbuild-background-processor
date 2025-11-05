@@ -1,7 +1,7 @@
 "use client";
 
-import { getAddress, getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
 import { useSettings } from "@/hooks/useSettings";
+import { getAddress, getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,7 +36,8 @@ export default function ContactUs() {
     type: "success" | "error" | null;
     message: string;
   }>({ type: null, message: "" });
-  const { isPhoneEnabled, isEmailEnabled, isContactFormEnabled } = useSettings();
+  const { isPhoneEnabled, isEmailEnabled, isContactFormEnabled } =
+    useSettings();
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -174,8 +175,15 @@ export default function ContactUs() {
             {!isContactFormEnabled ? (
               <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="text-center">
-                  <Icon icon="ph:envelope-simple-slash" width={64} height={64} className="mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-2xl font-semibold mb-2">Contact Form Unavailable</h3>
+                  <Icon
+                    icon="ph:envelope-simple-slash"
+                    width={64}
+                    height={64}
+                    className="mx-auto mb-4 text-gray-400"
+                  />
+                  <h3 className="text-2xl font-semibold mb-2">
+                    Contact Form Unavailable
+                  </h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     Please use the contact information provided to reach us.
                   </p>
@@ -202,140 +210,146 @@ export default function ContactUs() {
                         width={20}
                         height={20}
                       />
-                      <p className="text-sm font-medium">{submitStatus.message}</p>
+                      <p className="text-sm font-medium">
+                        {submitStatus.message}
+                      </p>
                     </div>
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit}>
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    autoComplete="name"
-                    placeholder="Name*"
-                    required
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <input
-                    type="tel"
-                    name="phone"
-                    id="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    autoComplete="tel"
-                    placeholder="Phone number*"
-                    required
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  autoComplete="email"
-                  placeholder="Email address*"
-                  required
-                  disabled={isSubmitting}
-                  className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <input
-                    type="text"
-                    name="company"
-                    id="company"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    placeholder="Company (optional)"
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <select
-                    name="subject"
-                    id="subject"
-                    value={formData.subject}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Select inquiry type*</option>
-                    <option value="property_inquiry">Property Inquiry</option>
-                    <option value="buy_property">Looking to Buy</option>
-                    <option value="sell_property">Looking to Sell</option>
-                    <option value="rent_property">Looking to Rent</option>
-                    <option value="investment">Investment Opportunities</option>
-                    <option value="valuation">Property Valuation</option>
-                    <option value="general">General Information</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <input
-                    type="text"
-                    name="budget"
-                    id="budget"
-                    value={formData.budget}
-                    onChange={handleInputChange}
-                    placeholder="Budget range (e.g., $100k - $200k)"
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <input
-                    type="text"
-                    name="timeline"
-                    id="timeline"
-                    value={formData.timeline}
-                    onChange={handleInputChange}
-                    placeholder="Timeline (e.g., 3-6 months)"
-                    disabled={isSubmitting}
-                    className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                <textarea
-                  rows={8}
-                  cols={50}
-                  name="message"
-                  id="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  placeholder="Write here your message"
-                  required
-                  disabled={isSubmitting}
-                  className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-2xl outline-primary focus:outline disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-8 py-4 rounded-full bg-primary text-white text-base font-semibold w-full mobile:w-fit hover:cursor-pointer hover:bg-dark duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Icon
-                        icon="ph:spinner"
-                        width={20}
-                        height={20}
-                        className="animate-spin"
+                  <div className="flex flex-col gap-8">
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      <input
+                        type="text"
+                        name="name"
+                        id="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        autoComplete="name"
+                        placeholder="Name*"
+                        required
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
                       />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send message"
-                  )}
-                </button>
-              </div>
-            </form>
+                      <input
+                        type="tel"
+                        name="phone"
+                        id="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        autoComplete="tel"
+                        placeholder="Phone number*"
+                        required
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      id="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      autoComplete="email"
+                      placeholder="Email address*"
+                      required
+                      disabled={isSubmitting}
+                      className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      <input
+                        type="text"
+                        name="company"
+                        id="company"
+                        value={formData.company}
+                        onChange={handleInputChange}
+                        placeholder="Company (optional)"
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <select
+                        name="subject"
+                        id="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        required
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select inquiry type*</option>
+                        <option value="property_inquiry">
+                          Property Inquiry
+                        </option>
+                        <option value="buy_property">Looking to Buy</option>
+                        <option value="sell_property">Looking to Sell</option>
+                        <option value="rent_property">Looking to Rent</option>
+                        <option value="investment">
+                          Investment Opportunities
+                        </option>
+                        <option value="valuation">Property Valuation</option>
+                        <option value="general">General Information</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      <input
+                        type="text"
+                        name="budget"
+                        id="budget"
+                        value={formData.budget}
+                        onChange={handleInputChange}
+                        placeholder="Budget range (e.g., $100k - $200k)"
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <input
+                        type="text"
+                        name="timeline"
+                        id="timeline"
+                        value={formData.timeline}
+                        onChange={handleInputChange}
+                        placeholder="Timeline (e.g., 3-6 months)"
+                        disabled={isSubmitting}
+                        className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-full outline-primary focus:outline w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <textarea
+                      rows={8}
+                      cols={50}
+                      name="message"
+                      id="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      placeholder="Write here your message"
+                      required
+                      disabled={isSubmitting}
+                      className="px-6 py-3.5 border border-black/10 dark:border-white/10 rounded-2xl outline-primary focus:outline disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-8 py-4 rounded-full bg-primary text-white text-base font-semibold w-full mobile:w-fit hover:cursor-pointer hover:bg-dark duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Icon
+                            icon="ph:spinner"
+                            width={20}
+                            height={20}
+                            className="animate-spin"
+                          />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send message"
+                      )}
+                    </button>
+                  </div>
+                </form>
               </>
             )}
           </div>

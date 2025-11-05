@@ -1,7 +1,7 @@
 "use client";
 import { navLinks } from "@/app/api/navlink";
-import { getSupportEmail, getPhoneNumber } from "@/lib/siteConfig";
 import { useSettings } from "@/hooks/useSettings";
+import { getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";

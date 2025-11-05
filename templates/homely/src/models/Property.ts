@@ -1,4 +1,3 @@
-import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
 
 export const propertyImageSchema = z.object({
@@ -43,7 +42,3 @@ export const propertySchema = z.object({
 });
 
 export type Property = z.infer<typeof propertySchema>;
-
-export const propertyParser = StructuredOutputParser.fromZodSchema(
-  z.array(propertySchema)
-);

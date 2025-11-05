@@ -58,6 +58,7 @@ interface WebsiteCreationOptions {
   propertyTypes: string[];
   includedPages: string[];
   preferredContactMethod: string[];
+  geminiApiKey?: string;
 
   // Contact Information
   phoneNumber?: string;
@@ -149,6 +150,7 @@ class WebsiteCreationService {
 
       // AI Configuration - Gemini API for chatbot
       GOOGLE_API_KEY: options.geminiApiKey || "",
+      NEXT_PUBLIC_GOOGLE_API_KEY: options.geminiApiKey || "",
 
       // Public configuration - Company Info
       NEXT_PUBLIC_COMPANY_NAME: options.companyName,
@@ -2574,6 +2576,10 @@ const appConfig = {
     name: "${options.companyName}",
     tagline: "${options.tagline || "Find Your Dream Home"}",
   },
+  // AI Configuration (if any)
+  ai: {
+    googleApiKey: process.env.GOOGLE_API_KEY || "",
+  },
 };
 
 const nextConfig: NextConfig = {
@@ -2595,6 +2601,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_YOUTUBE_URL: appConfig.social.youtube,
     NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
     NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
+    NEXT_PUBLIC_GOOGLE_API_KEY: appConfig.ai.googleApiKey,
   },
   experimental: {
     turbo: {

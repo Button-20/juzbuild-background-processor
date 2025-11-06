@@ -1,5 +1,6 @@
 "use client";
 import PropertyCard from "@/components/Properties/PropertyCard";
+import { useSettings } from "@/hooks/useSettings";
 import { formatCurrencyLegacy } from "@/lib/currency";
 import { PropertyHomes } from "@/types/properyHomes";
 import { Icon } from "@iconify/react";
@@ -28,6 +29,7 @@ const generateMetadata = (property: PropertyHomes | null) => {
 
 export default function PropertyDetails() {
   const { type, slug } = useParams() as { type: string; slug: string };
+  const { isInquiryFormEnabled } = useSettings();
   const [property, setProperty] = useState<PropertyHomes | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -602,104 +604,106 @@ export default function PropertyDetails() {
               </div>
             </div>
 
-            {/* Contact Form */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
-              <h3 className="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-3 sm:mb-4">
-                Interested in this property?
-              </h3>
+            {/* Contact Form - Only show if Inquiry Form is enabled */}
+            {isInquiryFormEnabled && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
+                <h3 className="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-3 sm:mb-4">
+                  Interested in this property?
+                </h3>
 
-              <form
-                onSubmit={handleContactSubmit}
-                className="space-y-3 sm:space-y-4"
-              >
-                <div>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Your Name"
-                    value={contactForm.name}
-                    onChange={handleContactChange}
-                    required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Your Email"
-                    value={contactForm.email}
-                    onChange={handleContactChange}
-                    required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Your Phone"
-                    value={contactForm.phone}
-                    onChange={handleContactChange}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    name="budget"
-                    placeholder="Budget Range (e.g., $100k - $200k)"
-                    value={contactForm.budget}
-                    onChange={handleContactChange}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    name="timeline"
-                    placeholder="Timeline (e.g., 3-6 months)"
-                    value={contactForm.timeline}
-                    onChange={handleContactChange}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <textarea
-                    name="message"
-                    placeholder="Your Message"
-                    rows={3}
-                    value={contactForm.message}
-                    onChange={handleContactChange}
-                    required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-sm sm:text-base"
-                  ></textarea>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={contactLoading}
-                  className="cursor-pointer w-full bg-primary text-white py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                <form
+                  onSubmit={handleContactSubmit}
+                  className="space-y-3 sm:space-y-4"
                 >
-                  {contactLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Icon icon="ph:paper-plane-tilt" className="w-4 h-4" />
-                      Send Inquiry
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+                  <div>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Your Name"
+                      value={contactForm.name}
+                      onChange={handleContactChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Your Email"
+                      value={contactForm.email}
+                      onChange={handleContactChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Your Phone"
+                      value={contactForm.phone}
+                      onChange={handleContactChange}
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      name="budget"
+                      placeholder="Budget Range (e.g., $100k - $200k)"
+                      value={contactForm.budget}
+                      onChange={handleContactChange}
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      name="timeline"
+                      placeholder="Timeline (e.g., 3-6 months)"
+                      value={contactForm.timeline}
+                      onChange={handleContactChange}
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <textarea
+                      name="message"
+                      placeholder="Your Message"
+                      rows={3}
+                      value={contactForm.message}
+                      onChange={handleContactChange}
+                      required
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-sm sm:text-base"
+                    ></textarea>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={contactLoading}
+                    className="cursor-pointer w-full bg-primary text-white py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    {contactLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="ph:paper-plane-tilt" className="w-4 h-4" />
+                        Send Inquiry
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">

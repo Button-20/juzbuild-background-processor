@@ -826,6 +826,134 @@ class WebsiteCreationService {
           ],
         },
         {
+          name: "blogs",
+          data: [
+            {
+              _id: new ObjectId(),
+              title: "Top 10 Tips for First-Time Home Buyers",
+              slug: "top-10-tips-for-first-time-home-buyers",
+              excerpt:
+                "Buying your first home can be overwhelming. Here are essential tips to help you navigate the process with confidence and make smart decisions.",
+              content: `<h2>Essential Tips for First-Time Home Buyers</h2>
+<p>Purchasing your first home is an exciting milestone, but it can also be challenging. Here are ten essential tips to help you make informed decisions:</p>
+
+<h3>1. Understand Your Budget</h3>
+<p>Before you start house hunting, determine how much you can afford. Consider all costs including down payment, monthly mortgage, property taxes, insurance, and maintenance.</p>
+
+<h3>2. Get Pre-Approved for a Mortgage</h3>
+<p>A pre-approval letter shows sellers you're a serious buyer and helps you understand your purchasing power.</p>
+
+<h3>3. Research Neighborhoods</h3>
+<p>Consider factors like schools, commute times, amenities, and future development plans in the area.</p>
+
+<h3>4. Work with a Reputable Real Estate Agent</h3>
+<p>An experienced agent can guide you through the process, negotiate on your behalf, and help you avoid common pitfalls.</p>
+
+<h3>5. Don't Skip the Home Inspection</h3>
+<p>A professional inspection can reveal hidden issues that might cost you thousands in repairs later.</p>
+
+<p>Remember, buying a home is a significant investment. Take your time, do your research, and don't hesitate to ask questions throughout the process.</p>`,
+              coverImage:
+                "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938451/image-3_pbgbet.jpg",
+              author: {
+                name: options.fullName || "Admin",
+                avatar:
+                  "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939579/smiths_shdf7a.jpg",
+              },
+              tags: ["Home Buying", "First-Time Buyers", "Real Estate Tips"],
+              isPublished: true,
+              viewCount: 245,
+              userId: options.userId,
+              domain: `${options.domainName}.onjuzbuild.com`,
+              createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+              updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
+            {
+              _id: new ObjectId(),
+              title: "Understanding Real Estate Market Trends in 2025",
+              slug: "understanding-real-estate-market-trends-2025",
+              excerpt:
+                "Stay ahead of the curve with insights into the latest real estate market trends and what they mean for buyers and sellers in 2025.",
+              content: `<h2>Real Estate Market Trends for 2025</h2>
+<p>The real estate market is constantly evolving. Here's what you need to know about current trends shaping the industry:</p>
+
+<h3>Digital Transformation</h3>
+<p>Virtual tours, AI-powered property searches, and digital closing processes are becoming the norm, making property transactions more convenient than ever.</p>
+
+<h3>Sustainability Focus</h3>
+<p>Buyers are increasingly interested in energy-efficient homes and sustainable building materials. Green certifications can significantly increase property value.</p>
+
+<h3>Remote Work Impact</h3>
+<p>The rise of remote work has changed location preferences, with many buyers seeking larger homes in suburban areas with good internet connectivity.</p>
+
+<h3>Smart Home Technology</h3>
+<p>Properties equipped with smart home features are in high demand. From automated lighting to advanced security systems, technology integration is a major selling point.</p>
+
+<h3>Market Predictions</h3>
+<p>Experts predict continued growth in suburban markets, increased demand for multi-functional spaces, and a focus on wellness-oriented amenities.</p>
+
+<p>Whether you're buying or selling, understanding these trends can help you make more informed decisions in today's dynamic market.</p>`,
+              coverImage:
+                "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938446/image-2_btqiku.jpg",
+              author: {
+                name: options.fullName || "Admin",
+                avatar:
+                  "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939579/smiths_shdf7a.jpg",
+              },
+              tags: ["Market Trends", "Real Estate", "2025", "Investment"],
+              isPublished: true,
+              viewCount: 178,
+              userId: options.userId,
+              domain: `${options.domainName}.onjuzbuild.com`,
+              createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+              updatedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+            },
+            {
+              _id: new ObjectId(),
+              title: "How to Stage Your Home for a Quick Sale",
+              slug: "how-to-stage-your-home-for-quick-sale",
+              excerpt:
+                "Proper home staging can make all the difference when selling. Learn professional staging techniques that help homes sell faster and for more money.",
+              content: `<h2>Professional Home Staging Tips</h2>
+<p>Home staging is the art of preparing your property to appeal to the widest range of potential buyers. Here's how to do it effectively:</p>
+
+<h3>Declutter and Depersonalize</h3>
+<p>Remove personal items, excess furniture, and clutter. Buyers need to envision themselves living in the space.</p>
+
+<h3>Deep Clean Everything</h3>
+<p>A spotless home suggests that it has been well-maintained. Pay special attention to kitchens and bathrooms.</p>
+
+<h3>Enhance Curb Appeal</h3>
+<p>First impressions matter. Maintain the lawn, add fresh mulch, paint the front door, and ensure the entrance is inviting.</p>
+
+<h3>Neutralize Color Schemes</h3>
+<p>Neutral colors appeal to more buyers and make spaces feel larger and brighter.</p>
+
+<h3>Optimize Lighting</h3>
+<p>Bright, well-lit spaces feel more welcoming. Open curtains, add lamps, and ensure all light fixtures are working.</p>
+
+<h3>Create Focal Points</h3>
+<p>Arrange furniture to highlight the best features of each room and create natural traffic flow.</p>
+
+<p>Professional staging can increase your home's sale price by 5-15%. Consider hiring a staging professional for the best results.</p>`,
+              coverImage:
+                "https://res.cloudinary.com/dho8jec7k/image/upload/v1760938448/image-4_jhxupa.jpg",
+              author: {
+                name: options.fullName || "Admin",
+                avatar:
+                  "https://res.cloudinary.com/dho8jec7k/image/upload/v1760939579/smiths_shdf7a.jpg",
+              },
+              tags: ["Home Staging", "Selling Tips", "Home Improvement"],
+              isPublished: true,
+              viewCount: 312,
+              userId: options.userId,
+              domain: `${options.domainName}.onjuzbuild.com`,
+              createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 21 days ago
+              updatedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
+            },
+          ],
+        },
+        {
           name: "pages",
           data: (
             options.includedPages || ["home", "listings", "about", "contact"]

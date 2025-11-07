@@ -740,6 +740,217 @@ class NamecheapAPI {
       };
     }
   }
+
+  /**
+   * Register/Purchase a domain
+   * @param domain - Domain name to register (e.g., "example.com")
+   * @param years - Number of years to register (default: 1)
+   * @param registrantInfo - Contact information for domain registration
+   * @returns Promise with registration result
+   */
+  async registerDomain(
+    domain: string,
+    years: number = 1,
+    registrantInfo: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+      organization?: string;
+    }
+  ): Promise<{ success: boolean; message: string; orderId?: string }> {
+    try {
+      console.log(`Attempting to register domain: ${domain}`);
+
+      // Use organization name or default to first+last name
+      const orgName =
+        registrantInfo.organization ||
+        `${registrantInfo.firstName} ${registrantInfo.lastName}`;
+
+      const params: Record<string, string> = {
+        DomainName: domain,
+        Years: years.toString(),
+        // Registrant Contact - All required fields
+        RegistrantFirstName: registrantInfo.firstName,
+        RegistrantLastName: registrantInfo.lastName,
+        RegistrantAddress1: registrantInfo.address,
+        RegistrantCity: registrantInfo.city,
+        RegistrantStateProvince: registrantInfo.state,
+        RegistrantPostalCode: registrantInfo.zip,
+        RegistrantCountry: registrantInfo.country,
+        RegistrantPhone: registrantInfo.phone,
+        RegistrantEmailAddress: registrantInfo.email,
+        RegistrantOrganizationName: orgName,
+        // Tech Contact - All required fields (use same as registrant)
+        TechFirstName: registrantInfo.firstName,
+        TechLastName: registrantInfo.lastName,
+        TechAddress1: registrantInfo.address,
+        TechCity: registrantInfo.city,
+        TechStateProvince: registrantInfo.state,
+        TechPostalCode: registrantInfo.zip,
+        TechCountry: registrantInfo.country,
+        TechPhone: registrantInfo.phone,
+        TechEmailAddress: registrantInfo.email,
+        TechOrganizationName: orgName,
+        // Admin Contact - All required fields (use same as registrant)
+        AdminFirstName: registrantInfo.firstName,
+        AdminLastName: registrantInfo.lastName,
+        AdminAddress1: registrantInfo.address,
+        AdminCity: registrantInfo.city,
+        AdminStateProvince: registrantInfo.state,
+        AdminPostalCode: registrantInfo.zip,
+        AdminCountry: registrantInfo.country,
+        AdminPhone: registrantInfo.phone,
+        AdminEmailAddress: registrantInfo.email,
+        AdminOrganizationName: orgName,
+        // AuxBilling Contact - All required fields (use same as registrant)
+        AuxBillingFirstName: registrantInfo.firstName,
+        AuxBillingLastName: registrantInfo.lastName,
+        AuxBillingAddress1: registrantInfo.address,
+        AuxBillingCity: registrantInfo.city,
+        AuxBillingStateProvince: registrantInfo.state,
+        AuxBillingPostalCode: registrantInfo.zip,
+        AuxBillingCountry: registrantInfo.country,
+        AuxBillingPhone: registrantInfo.phone,
+        AuxBillingEmailAddress: registrantInfo.email,
+        AuxBillingOrganizationName: orgName,
+        // Additional settings
+        AddFreeWhoisguard: "yes",
+        WGEnabled: "yes",
+      };
+
+      console.log(`Registering domain with params:`, {
+        domain,
+        years,
+        registrant: registrantInfo.email,
+        organization: orgName,
+      });
+
+      const url = this.buildUrl("namecheap.domains.create", params);
+      const response = await this.makeRequest(url);
+
+      if (response.ApiResponse.Status !== "OK") {
+        const errors = response.ApiResponse.Errors?.Error || [];
+        const errorMessage = errors
+          .map((e) => `${e.Number}: ${e.Description}`)
+          .join(", ");
+        console.error(`Domain registration API error:`, errorMessage);
+        throw new Error(`Domain registration failed: ${errorMessage}`);
+      }
+
+      // Extract order ID from response
+      // The response structure varies, try different paths
+      const commandResponse = response.ApiResponse?.CommandResponse as any;
+      const orderId =
+        commandResponse?.DomainCreateResult?.OrderID ||
+        commandResponse?.DomainCreateResult?.$?.OrderID ||
+        commandResponse?.$.OrderID;
+
+      console.log(
+        `✅ Domain ${domain} registered successfully. Order ID: ${
+          orderId || "N/A"
+        }`
+      );
+
+      return {
+        success: true,
+        message: `Domain ${domain} registered successfully`,
+        ...(orderId && { orderId: orderId.toString() }),
+      };
+    } catch (error) {
+      console.error("❌ Domain registration failed:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Domain registration failed",
+      };
+    }
+  }
+
+  /**
+   * Set DNS host records for a domain
+   * @param domain - The full domain name (e.g., "example.com")
+   * @param records - Array of DNS records to set
+   * @returns Promise with success status and message
+   */
+  async setDNSRecords(
+    domain: string,
+    records: Array<{
+      hostName: string;
+      recordType: string;
+      address: string;
+      ttl: string;
+    }>
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const domainParts = domain.split(".");
+      if (domainParts.length < 2) {
+        throw new Error(`Invalid domain format: ${domain}`);
+      }
+      const sld = domainParts[0]!;
+      const tld = domainParts.slice(1).join(".");
+
+      console.log(`Setting ${records.length} DNS records for ${domain}:`);
+      records.forEach((record, index) => {
+        console.log(
+          `  ${index + 1}. ${record.hostName} (${record.recordType}) -> ${
+            record.address
+          } [TTL: ${record.ttl}]`
+        );
+      });
+
+      // Build the setHosts parameters with all records
+      const setHostsParams: Record<string, string> = {
+        SLD: sld,
+        TLD: tld,
+      };
+
+      // Add all records to the parameters
+      records.forEach((record, index) => {
+        const recordNum = index + 1;
+        setHostsParams[`HostName${recordNum}`] = record.hostName;
+        setHostsParams[`RecordType${recordNum}`] = record.recordType;
+        setHostsParams[`Address${recordNum}`] = record.address;
+        setHostsParams[`TTL${recordNum}`] = record.ttl;
+      });
+
+      const setHostsUrl = this.buildUrl(
+        "namecheap.domains.dns.setHosts",
+        setHostsParams
+      );
+
+      const result = await this.makeRequest(setHostsUrl);
+
+      if (result.ApiResponse.Status === "OK") {
+        console.log(`✅ Successfully set DNS records for ${domain}`);
+        return {
+          success: true,
+          message: `Successfully configured DNS records for ${domain}`,
+        };
+      } else {
+        const errorMsg =
+          result.ApiResponse.Errors?.Error?.[0]?.Description ||
+          "Failed to set DNS records";
+        console.error(`❌ Failed to set DNS records: ${errorMsg}`);
+        return {
+          success: false,
+          message: errorMsg,
+        };
+      }
+    } catch (error) {
+      console.error("Error setting DNS records:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to set DNS records",
+      };
+    }
+  }
 }
 
 // Export the class and types

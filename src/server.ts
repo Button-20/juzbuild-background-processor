@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { jobTracker } from "./lib/job-tracker.js";
+import domainRouter from "./routes/domain.js";
 import { WorkflowProcessor } from "./workflow-processor.js";
 
 // Load environment variables
@@ -15,6 +16,9 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+// Mount domain router
+app.use("/api/domain", domainRouter);
 
 // Initialize workflow processor
 const workflowProcessor = new WorkflowProcessor();

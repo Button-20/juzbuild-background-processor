@@ -284,6 +284,7 @@ class WebsiteCreationService {
       }
 
       let ga4MeasurementId = "";
+      let ga4PropertyId = "";
       try {
         const gaResult = await createGA4Property(
           options.websiteName,
@@ -291,6 +292,7 @@ class WebsiteCreationService {
           "USD"
         );
         ga4MeasurementId = gaResult.measurementId;
+        ga4PropertyId = gaResult.googleAnalyticsAccountId;
         results["Google Analytics"] = {
           measurementId: ga4MeasurementId,
           propertyName: gaResult.propertyName,
@@ -569,7 +571,8 @@ class WebsiteCreationService {
       // Step 7: Database Logging
       const loggingResult = await this.logSiteCreation(
         options,
-        ga4MeasurementId
+        ga4MeasurementId,
+        ga4PropertyId
       );
       if (!loggingResult.success) {
         if (jobId) {
@@ -1874,7 +1877,8 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
    */
   async logSiteCreation(
     options: WebsiteCreationOptions,
-    ga4MeasurementId?: string
+    ga4MeasurementId?: string,
+    ga4PropertyId?: string
   ): Promise<WorkflowResult> {
     console.log(
       "[logSiteCreation] Starting site creation logging for:",
@@ -1907,6 +1911,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         status: "active",
         theme: options.selectedTheme,
         ga4MeasurementId: ga4MeasurementId || null,
+        ga4PropertyId: ga4PropertyId || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

@@ -4,6 +4,7 @@ import { Octokit } from "@octokit/rest";
 import fs from "fs/promises";
 import { MongoClient, ObjectId } from "mongodb";
 import path from "path";
+import { createGA4Property } from "./google-analytics.js";
 import { jobTracker } from "./job-tracker.js";
 import { getNamecheapInstance } from "./namecheap.js";
 import { getVercelInstance } from "./vercel.js";
@@ -268,6 +269,70 @@ class WebsiteCreationService {
       }
       console.log(`✅ Database created successfully`);
 
+      // Step 1.5: Google Analytics Setup (Early)
+      console.log(
+        `📊 Step 1.5: Setting up Google Analytics for ${options.websiteName}...`
+      );
+      if (jobId) {
+        await jobTracker.updateStep(
+          jobId,
+          "Google Analytics",
+          "in-progress",
+          "Creating Google Analytics property...",
+          32
+        );
+      }
+
+      let ga4MeasurementId = "";
+      try {
+        const gaResult = await createGA4Property(
+          options.websiteName,
+          "America/New_York",
+          "USD"
+        );
+        ga4MeasurementId = gaResult.measurementId;
+        results["Google Analytics"] = {
+          measurementId: ga4MeasurementId,
+          propertyName: gaResult.propertyName,
+          propertyId: gaResult.googleAnalyticsAccountId,
+          success: true,
+        };
+
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Google Analytics",
+            "completed",
+            `Analytics property created with ID: ${ga4MeasurementId}`,
+            38
+          );
+        }
+        console.log(
+          `✅ Google Analytics property created with measurement ID: ${ga4MeasurementId}`
+        );
+      } catch (gaError: any) {
+        console.warn(
+          `⚠️ Google Analytics setup failed (non-critical): ${
+            gaError?.message || gaError
+          }`
+        );
+        results["Google Analytics"] = {
+          success: false,
+          error: gaError?.message || "GA4 setup failed",
+          note: "GA4 setup failed but website creation continued",
+        };
+
+        if (jobId) {
+          await jobTracker.updateStep(
+            jobId,
+            "Google Analytics",
+            "completed",
+            "GA4 setup encountered an issue",
+            38
+          );
+        }
+      }
+
       // Step 2: Template Generation
       console.log(
         `🎨 Step 2: Generating template for ${options.websiteName}...`
@@ -282,7 +347,10 @@ class WebsiteCreationService {
         );
       }
 
-      const templateResult = await this.generateTemplate(options);
+      const templateResult = await this.generateTemplate(
+        options,
+        ga4MeasurementId
+      );
       if (!templateResult.success) {
         if (jobId) {
           await jobTracker.updateStep(
@@ -499,7 +567,10 @@ class WebsiteCreationService {
       }
 
       // Step 7: Database Logging
-      const loggingResult = await this.logSiteCreation(options);
+      const loggingResult = await this.logSiteCreation(
+        options,
+        ga4MeasurementId
+      );
       if (!loggingResult.success) {
         if (jobId) {
           await jobTracker.updateStep(
@@ -1014,7 +1085,8 @@ class WebsiteCreationService {
    * Step 2: Generate website template based on homely template
    */
   async generateTemplate(
-    options: WebsiteCreationOptions
+    options: WebsiteCreationOptions,
+    ga4MeasurementId?: string
   ): Promise<WorkflowResult> {
     try {
       const homelyBasePath = path.join(process.cwd(), "templates", "homely");
@@ -1049,8 +1121,8 @@ class WebsiteCreationService {
       // Update navigation based on selected pages
       await this.updateNavigation(templatePath, options);
 
-      // Update template configuration and branding
-      await this.customizeTemplate(templatePath, options);
+      // Update template configuration and branding (pass GA4 ID)
+      await this.customizeTemplate(templatePath, options, ga4MeasurementId);
 
       return {
         success: true,
@@ -1061,6 +1133,7 @@ class WebsiteCreationService {
           removedAdmin: true,
           dynamicDatabase: true,
           customPages: options.includedPages?.length || 0,
+          ga4MeasurementId: ga4MeasurementId || null,
         },
       };
     } catch (error) {
@@ -1800,7 +1873,8 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
    * Step 7: Log site creation in main database
    */
   async logSiteCreation(
-    options: WebsiteCreationOptions
+    options: WebsiteCreationOptions,
+    ga4MeasurementId?: string
   ): Promise<WorkflowResult> {
     console.log(
       "[logSiteCreation] Starting site creation logging for:",
@@ -1832,6 +1906,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         dbName: this.generateDatabaseName(options.websiteName),
         status: "active",
         theme: options.selectedTheme,
+        ga4MeasurementId: ga4MeasurementId || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -2150,7 +2225,8 @@ ${navItems
 
   private async customizeTemplate(
     templatePath: string,
-    options: WebsiteCreationOptions
+    options: WebsiteCreationOptions,
+    ga4MeasurementId?: string
   ): Promise<void> {
     // Update package.json with user's project name
     const packageJsonPath = path.join(templatePath, "package.json");
@@ -2168,8 +2244,8 @@ ${navItems
       // Package.json might not exist or be malformed
     }
 
-    // Update next.config.ts with comprehensive user data
-    await this.updateNextConfigFile(templatePath, options);
+    // Update next.config.ts with comprehensive user data AND GA4 ID
+    await this.updateNextConfigFile(templatePath, options, ga4MeasurementId);
 
     // Update globals.css with selected color palette
     await this.updateGlobalsCssColors(templatePath, options);
@@ -2239,6 +2315,24 @@ ${navItems
         /(description:\s*)"[^"]*"/g,
         `$1"${options.tagline || "Professional Real Estate Services"}"`
       );
+
+      // Replace GA tracking ID if provided
+      if (ga4MeasurementId) {
+        layoutContent = layoutContent.replace(
+          /{{GA_TRACKING_ID}}/g,
+          ga4MeasurementId
+        );
+        layoutContent = layoutContent.replace(
+          /{{GA_TRACKING_ID}}/g,
+          ga4MeasurementId
+        );
+      } else {
+        // Comment out GA script if no measurement ID
+        layoutContent = layoutContent.replace(
+          /\/\/ Google Analytics[\s\S]*?\/\/.*(?=\n)/g,
+          "/* Google Analytics disabled - no measurement ID */"
+        );
+      }
 
       // Fix any trailing commas or syntax issues
       layoutContent = layoutContent.replace(/,(\s*})/g, "$1");
@@ -2675,7 +2769,8 @@ export default function RootLayout({
    */
   private async updateNextConfigFile(
     templatePath: string,
-    options: WebsiteCreationOptions
+    options: WebsiteCreationOptions,
+    ga4MeasurementId?: string
   ): Promise<void> {
     const nextConfigPath = path.join(templatePath, "next.config.ts");
 
@@ -2722,6 +2817,10 @@ const appConfig = {
   ai: {
     googleApiKey: process.env.GOOGLE_API_KEY || "",
   },
+  // Google Analytics Configuration
+  analytics: {
+    googleAnalyticsId: "${ga4MeasurementId || ""}",
+  },
 };
 
 const nextConfig: NextConfig = {
@@ -2744,6 +2843,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_COMPANY_NAME: appConfig.company.name,
     NEXT_PUBLIC_COMPANY_TAGLINE: appConfig.company.tagline,
     GOOGLE_API_KEY: appConfig.ai.googleApiKey,
+    NEXT_PUBLIC_GA_ID: appConfig.analytics.googleAnalyticsId,
   },
   experimental: {
     turbo: {

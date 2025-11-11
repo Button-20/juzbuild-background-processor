@@ -572,7 +572,9 @@ class WebsiteCreationService {
       const loggingResult = await this.logSiteCreation(
         options,
         ga4MeasurementId,
-        ga4PropertyId
+        ga4PropertyId,
+        githubResult.data?.reponame, // Pass the actual GitHub repo name with timestamp
+        githubResult.data?.owner // Pass the GitHub owner
       );
       if (!loggingResult.success) {
         if (jobId) {
@@ -1878,7 +1880,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
   async logSiteCreation(
     options: WebsiteCreationOptions,
     ga4MeasurementId?: string,
-    ga4PropertyId?: string
+    ga4PropertyId?: string,
+    githubRepoName?: string, // Actual repo name with timestamp
+    githubOwner?: string // GitHub owner username
   ): Promise<WorkflowResult> {
     console.log(
       "[logSiteCreation] Starting site creation logging for:",
@@ -1904,7 +1908,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         websiteName: options.companyName || options.websiteName, // Use companyName as display name
         companyName: options.companyName,
         templatePath: `/templates/${options.websiteName}`,
-        repoUrl: `https://github.com/${process.env.GITHUB_USERNAME}/${options.websiteName}`,
+        repoUrl: `https://github.com/${githubOwner || process.env.GITHUB_USERNAME}/${githubRepoName || options.websiteName}`,
         domain: `${options.domainName}.onjuzbuild.com`,
         websiteUrl: `https://${options.domainName}.onjuzbuild.com`,
         dbName: this.generateDatabaseName(options.websiteName),

@@ -509,6 +509,27 @@ class VercelAPI {
       };
     }
   }
+
+  /**
+   * Delete a Vercel project and all associated deployments
+   * @param projectId - Vercel project ID or name
+   * @returns Promise<void>
+   */
+  async deleteProject(projectId: string): Promise<void> {
+    try {
+      console.log(`Deleting Vercel project: ${projectId}`);
+
+      await this.vercel.projects.deleteProject({
+        idOrName: projectId,
+      });
+
+      console.log(`✓ Vercel project deleted: ${projectId}`);
+    } catch (error) {
+      // Log warning but don't fail - project might already be deleted or not exist
+      console.warn(`Failed to delete Vercel project ${projectId}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Export the class and types

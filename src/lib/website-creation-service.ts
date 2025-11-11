@@ -1908,7 +1908,9 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         websiteName: options.companyName || options.websiteName, // Use companyName as display name
         companyName: options.companyName,
         templatePath: `/templates/${options.websiteName}`,
-        repoUrl: `https://github.com/${githubOwner || process.env.GITHUB_USERNAME}/${githubRepoName || options.websiteName}`,
+        repoUrl: `https://github.com/${
+          githubOwner || process.env.GITHUB_USERNAME
+        }/${githubRepoName || options.websiteName}`,
         domain: `${options.domainName}.onjuzbuild.com`,
         websiteUrl: `https://${options.domainName}.onjuzbuild.com`,
         dbName: this.generateDatabaseName(options.websiteName),

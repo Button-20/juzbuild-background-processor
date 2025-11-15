@@ -79,10 +79,7 @@ export class SEOReplacementService {
       PROPERTY_TYPES: "Residential,Commercial,Rental",
 
       // Analytics & Tracking (from next.config.js analytics object OR from siteData)
-      GA_TRACKING_ID:
-        siteData.analytics?.googleAnalyticsId ||
-        siteData.ga4MeasurementId ||
-        "",
+      GA_TRACKING_ID: siteData.analytics?.googleAnalytics?.measurementId || "",
       FACEBOOK_PIXEL_ID: siteData.analytics?.facebookPixelId || "",
       GOOGLE_VERIFICATION_CODE: siteData.verification?.googleVerification || "",
       FACEBOOK_VERIFICATION_CODE:

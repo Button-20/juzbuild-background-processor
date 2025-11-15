@@ -266,7 +266,7 @@ class NamecheapAPI {
       console.log("Attempting to retrieve current DNS state from Namecheap...");
       const currentRecords = await this.getCurrentDNSRecords(domain);
 
-      // Step 2: Get database records to ensure all JuzBuild sites are included
+      // Step 2: Get database records to ensure all JuzBuild websites are included
       const databaseRecords = await this.getAllJuzBuildSubdomains();
 
       // Step 3: Merge current Namecheap records with database records
@@ -414,12 +414,12 @@ class NamecheapAPI {
 
       await client.connect();
       const db = client.db("Juzbuild");
-      const sitesCollection = db.collection("sites");
+      const websitesCollection = db.collection("websites");
 
-      // Get all sites that have domains
-      const sites = await sitesCollection
+      // Get all websites that have domains
+      const websites = await websitesCollection
         .find({
-          domain: { $exists: true, $ne: null },
+          domainName: { $exists: true, $ne: null },
         })
         .toArray();
 
@@ -441,14 +441,13 @@ class NamecheapAPI {
         },
       ];
 
-      // Convert sites to DNS records
-      const subdomainRecords = sites.map((site) => {
-        const siteName =
-          site.websiteName || site.websitename || site.companyName;
+      // Convert websites to DNS records
+      const subdomainRecords = websites.map((website) => {
+        const siteName = website.domainName || website.companyName;
         return {
           hostName: siteName,
           recordType: "CNAME",
-          address: `${siteName}.vercel.app`,
+          address: website.vercelUrl || `${siteName}.vercel.app`,
           ttl: "300",
         };
       });

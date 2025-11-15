@@ -1,6 +1,7 @@
 // Types for background processor workflow
 export interface WebsiteCreationOptions {
   userId: string;
+  websiteId: string; // Add websiteId for multi-site architecture
   websiteName: string;
   userEmail: string;
   fullName: string;

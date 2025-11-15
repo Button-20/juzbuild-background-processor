@@ -6,6 +6,32 @@ import type {
 } from "./types/workflow.js";
 
 export class WorkflowProcessor {
+  private async updateWebsiteStatus(
+    websiteId: string,
+    updates: any
+  ): Promise<void> {
+    try {
+      const { MongoClient, ObjectId } = await import("mongodb");
+      const client = new MongoClient(
+        process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Juzbuild"
+      );
+
+      await client.connect();
+      const db = client.db("Juzbuild");
+      const websitesCollection = db.collection("websites");
+
+      await websitesCollection.updateOne(
+        { _id: new ObjectId(websiteId) },
+        { $set: updates }
+      );
+
+      await client.close();
+    } catch (error) {
+      console.error("Error updating website status:", error);
+      throw error;
+    }
+  }
+
   async processWebsiteCreation(
     options: WebsiteCreationOptions,
     jobId?: string
@@ -58,9 +84,33 @@ export class WorkflowProcessor {
       );
 
       if (result.success) {
-        console.log(
-          ` Website creation completed successfully for: ${options.websiteName}`
-        );
+        // Website creation completed successfully
+
+        // Update website status in database if websiteId is provided
+        if (options.websiteId) {
+          try {
+            await this.updateWebsiteStatus(options.websiteId, {
+              status: "active",
+              deploymentStatus: "completed",
+              websiteUrl: result.data?.websiteUrl, // This is the onjuzbuild.com URL
+              vercelUrl: result.data?.vercelUrl, // This is the actual vercel.app URL
+              aliasUrl: result.data?.aliasUrl,
+              "analytics.googleAnalytics.measurementId":
+                result.data?.ga4MeasurementId || null,
+              "analytics.googleAnalytics.propertyId":
+                result.data?.ga4PropertyId || null,
+              "analytics.googleAnalytics.isEnabled":
+                result.data?.analyticsEnabled || false,
+              completedAt: new Date(),
+              updatedAt: new Date(),
+            });
+          } catch (dbError) {
+            console.warn(
+              "Failed to update website status in database:",
+              dbError
+            );
+          }
+        }
 
         // Update job as completed
         try {
@@ -86,6 +136,23 @@ export class WorkflowProcessor {
           result.error
         );
 
+        // Update website status in database if websiteId is provided
+        if (options.websiteId) {
+          try {
+            await this.updateWebsiteStatus(options.websiteId, {
+              status: "failed",
+              deploymentStatus: "failed",
+              errorMessage: result.error,
+              updatedAt: new Date(),
+            });
+          } catch (dbError) {
+            console.warn(
+              "Failed to update website status in database:",
+              dbError
+            );
+          }
+        }
+
         // Update job as failed
         try {
           await jobTracker.updateJob(actualJobId, {
@@ -109,6 +176,20 @@ export class WorkflowProcessor {
         ` Website creation error for: ${options.websiteName}`,
         errorMessage
       );
+
+      // Update website status in database if websiteId is provided
+      if (options.websiteId) {
+        try {
+          await this.updateWebsiteStatus(options.websiteId, {
+            status: "failed",
+            deploymentStatus: "failed",
+            errorMessage: errorMessage,
+            updatedAt: new Date(),
+          });
+        } catch (dbError) {
+          console.warn("Failed to update website status in database:", dbError);
+        }
+      }
 
       // Update job as failed
       try {

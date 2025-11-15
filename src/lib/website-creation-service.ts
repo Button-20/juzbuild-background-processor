@@ -265,7 +265,7 @@ class WebsiteCreationService {
           console.log(`📊 Creating database for ${options.websiteName}...`);
           const result = await this.createLocalDatabase(options);
           if (result.success) {
-            console.log(`✅ Database created successfully`);
+            // Database created successfully
           }
           return result;
         })(),
@@ -315,7 +315,7 @@ class WebsiteCreationService {
           await new Promise((resolve) => setTimeout(resolve, 100));
           const result = await this.generateTemplate(options, "");
           if (result.success) {
-            console.log(`✅ Template generated successfully`);
+            // Template generated successfully
           }
           return result;
         })(),
@@ -449,7 +449,7 @@ class WebsiteCreationService {
           60
         );
       }
-      console.log(`✅ GitHub repository created successfully`);
+      // GitHub repository created successfully
 
       // Step 4: Vercel Deployment
       console.log(
@@ -500,7 +500,7 @@ class WebsiteCreationService {
           80
         );
       }
-      console.log(`✅ Vercel deployment completed successfully`);
+      // Vercel deployment completed successfully
 
       // Step 5: Subdomain Setup
       console.log(
@@ -548,7 +548,7 @@ class WebsiteCreationService {
           92
         );
       }
-      console.log(`✅ Subdomain configured successfully`);
+      // Subdomain configured successfully
 
       // Step 6: Final Testing & Email Notification (non-blocking)
       console.log(
@@ -569,7 +569,7 @@ class WebsiteCreationService {
         const emailResult = await this.sendSetupNotification(options);
         if (emailResult.success) {
           results["Email Notification"] = emailResult.data;
-          console.log("✅ Setup notification email sent successfully");
+          // Setup notification email sent successfully
         } else {
           console.warn(
             `⚠️ Email notification failed (non-critical): ${emailResult.error}`
@@ -649,10 +649,13 @@ class WebsiteCreationService {
             "-" +
             Date.now(),
           domain: `${options.domainName}.onjuzbuild.com`,
-          websiteUrl:
-            vercelUrl || `https://${options.domainName}.onjuzbuild.com`,
+          websiteUrl: `https://${options.domainName}.onjuzbuild.com`,
+          vercelUrl: vercelUrl, // Keep vercel URL for reference
           aliasUrl: aliasUrl, // Include the alias URL for the frontend
           status: "active",
+          ga4MeasurementId: ga4MeasurementId || null,
+          ga4PropertyId: ga4PropertyId || null,
+          analyticsEnabled: !!ga4MeasurementId,
           results,
         },
       };
@@ -1223,7 +1226,7 @@ class WebsiteCreationService {
         auto_init: false, // Don't initialize with README, we'll create our own
       });
 
-      console.log(`✅ GitHub repository created: ${repo.data.html_url}`);
+      // GitHub repository created
 
       // Create README.md for the repository
       const readmeContent = `# ${options.companyName} - Real Estate Website
@@ -1884,7 +1887,7 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
         createdAt: new Date().toLocaleString(),
       });
 
-      console.log(`✅ Website creation email sent to: ${options.userEmail}`);
+      // Website creation email sent
 
       return {
         success: true,
@@ -1932,50 +1935,50 @@ For support and customization, contact [Juzbuild Support](https://juzbuild.com/s
       console.log("[logSiteCreation] Connected to MongoDB successfully");
 
       const db = client.db("Juzbuild");
-      const sitesCollection = db.collection("sites");
+      const websitesCollection = db.collection("websites");
 
-      const siteRecord = {
-        userId: options.userId,
-        userEmail: options.userEmail,
-        websiteName: options.companyName || options.websiteName, // Use companyName as display name
-        companyName: options.companyName,
-        templatePath: `/templates/${options.websiteName}`,
-        repoUrl: `https://github.com/${
-          githubOwner || process.env.GITHUB_USERNAME
-        }/${githubRepoName || options.websiteName}`,
-        domain: `${options.domainName}.onjuzbuild.com`,
-        websiteUrl: `https://${options.domainName}.onjuzbuild.com`,
-        dbName: this.generateDatabaseName(options.websiteName),
-        status: "active",
-        theme: options.selectedTheme,
-        ga4MeasurementId: ga4MeasurementId || null,
-        ga4PropertyId: ga4PropertyId || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      // Update the existing website record with GA4 info instead of creating separate records
+      const websiteUpdate = {
+        $set: {
+          "analytics.googleAnalytics.measurementId": ga4MeasurementId || null,
+          "analytics.googleAnalytics.propertyId": ga4PropertyId || null,
+          "analytics.googleAnalytics.isEnabled": !!ga4MeasurementId,
+          repoUrl: `https://github.com/${
+            githubOwner || process.env.GITHUB_USERNAME
+          }/${githubRepoName || options.websiteName}`,
+          dbName: this.generateDatabaseName(options.websiteName),
+          updatedAt: new Date(),
+        },
       };
 
       console.log(
-        "[logSiteCreation] Logging site creation for userId:",
+        "[logSiteCreation] Updating website record for userId:",
         options.userId
       );
       console.log("[logSiteCreation] userId type:", typeof options.userId);
       console.log(
-        "[logSiteCreation] Site record:",
-        JSON.stringify(siteRecord, null, 2)
+        "[logSiteCreation] Website update:",
+        JSON.stringify(websiteUpdate, null, 2)
       );
-      console.log("[logSiteCreation] Inserting into sites collection...");
+      console.log("[logSiteCreation] Updating websites collection...");
 
-      const result = await sitesCollection.insertOne(siteRecord);
+      const result = await websitesCollection.updateOne(
+        {
+          userId: options.userId,
+          domainName: options.domainName,
+        },
+        websiteUpdate
+      );
 
       console.log(
-        "[logSiteCreation] ✅ Site record inserted successfully! ID:",
-        result.insertedId.toString()
+        "[logSiteCreation] ✅ Website record updated successfully! Modified count:",
+        result.modifiedCount
       );
 
       return {
         success: true,
         data: {
-          siteId: result.insertedId.toString(),
+          websiteUpdated: result.modifiedCount > 0,
           logged: true,
         },
       };
@@ -2649,7 +2652,7 @@ export default function RootLayout({
           if (response.ok) {
             const buffer = await response.arrayBuffer();
             await fs.writeFile(faviconPath, Buffer.from(buffer));
-            console.log(`✅ Replaced favicon at: ${faviconPath}`);
+            // Replaced favicon
           }
         } catch (error) {
           // File doesn't exist or couldn't be replaced, continue to next path
@@ -2715,7 +2718,7 @@ export default function RootLayout({
             if (response.ok) {
               const buffer = await response.arrayBuffer();
               await fs.writeFile(iconPath, Buffer.from(buffer));
-              console.log(`✅ Created ${variant.name} at: ${iconPath}`);
+              // Created icon variant
               break; // Success, move to next variant
             }
           } catch (error) {

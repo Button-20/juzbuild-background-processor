@@ -54,11 +54,33 @@ app.get("/health", async (req, res) => {
   });
 });
 
+// Track active jobs to prevent duplicates
+const activeJobs = new Set<string>();
+
 // Main workflow processing endpoint
 app.post("/process-website-creation", verifySecret, async (req, res) => {
   try {
     const websiteData = req.body;
+    const domainKey = `${websiteData.userId}_${websiteData.domainName}`;
+
+    // Check if there's already an active job for this user/domain combination
+    if (activeJobs.has(domainKey)) {
+      console.log(
+        `[${new Date().toISOString()}] Duplicate job request blocked for: ${
+          websiteData.websiteName
+        } (User: ${websiteData.userId}, Domain: ${websiteData.domainName})`
+      );
+      return res.status(409).json({
+        success: false,
+        error: "Job already in progress for this domain",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const jobId = `${websiteData.websiteName}_${Date.now()}`;
+
+    // Add to active jobs set
+    activeJobs.add(domainKey);
 
     console.log(
       `[${new Date().toISOString()}] Starting background website creation for: ${
@@ -87,6 +109,8 @@ app.post("/process-website-creation", verifySecret, async (req, res) => {
           } (Job ID: ${jobId})`,
           result
         );
+        // Remove from active jobs set
+        activeJobs.delete(domainKey);
       })
       .catch((error: any) => {
         console.error(
@@ -95,6 +119,8 @@ app.post("/process-website-creation", verifySecret, async (req, res) => {
           } (Job ID: ${jobId})`,
           error
         );
+        // Remove from active jobs set even on failure
+        activeJobs.delete(domainKey);
       });
 
     // Return immediately to main application

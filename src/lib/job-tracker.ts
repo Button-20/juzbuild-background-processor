@@ -146,6 +146,7 @@ class JobTracker {
       if (!currentData.steps) {
         currentData.steps = [
           { name: "Database Setup", status: "pending" },
+          { name: "Google Analytics", status: "pending" },
           { name: "Template Configuration", status: "pending" },
           { name: "GitHub Repository", status: "pending" },
           { name: "Vercel Deployment", status: "pending" },
@@ -155,13 +156,31 @@ class JobTracker {
       }
 
       // Update the specific step
-      const stepIndex = currentData.steps.findIndex(step => step.name === stepName);
+      const stepIndex = currentData.steps.findIndex(
+        (step) => step.name === stepName
+      );
       if (stepIndex !== -1 && currentData.steps[stepIndex]) {
+        console.log(`✅ Updating step "${stepName}" to status "${stepStatus}"`);
         currentData.steps[stepIndex] = {
           name: currentData.steps[stepIndex].name,
           status: stepStatus,
           timestamp: new Date().toISOString(),
         };
+      } else {
+        console.log(
+          `⚠️ Step "${stepName}" not found in steps array. Available steps:`,
+          currentData.steps.map((s) => s.name).join(", ")
+        );
+
+        // Add the step if it doesn't exist
+        currentData.steps.push({
+          name: stepName,
+          status: stepStatus,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(
+          `➕ Added new step "${stepName}" with status "${stepStatus}"`
+        );
       }
 
       const updatedData: JobStatus = {

@@ -58,6 +58,7 @@ export class WorkflowProcessor {
         estimatedCompletion: "5-8 minutes",
         steps: [
           { name: "Database Setup", status: "pending" },
+          { name: "Google Analytics", status: "pending" },
           { name: "Template Configuration", status: "pending" },
           { name: "GitHub Repository", status: "pending" },
           { name: "Vercel Deployment", status: "pending" },

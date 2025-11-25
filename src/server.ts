@@ -282,20 +282,24 @@ const initializeRedis = async () => {
   }
 };
 
-// Start server
-const server = app.listen(port, async () => {
-  console.log(
-    `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`
-  );
-  console.log(
-    `[${new Date().toISOString()}] Health check available at: http://localhost:${port}/health`
-  );
-  console.log(
-    `[${new Date().toISOString()}] Job status endpoint: http://localhost:${port}/job-status/:jobId`
-  );
+// Initialize Redis on module load
+initializeRedis();
 
-  // Initialize Redis connection
-  await initializeRedis();
-});
+// Start server only in local development
+// In Vercel/serverless, the app is exported and doesn't call listen()
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(
+      `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`
+    );
+    console.log(
+      `[${new Date().toISOString()}] Health check available at: http://localhost:${port}/health`
+    );
+    console.log(
+      `[${new Date().toISOString()}] Job status endpoint: http://localhost:${port}/job-status/:jobId`
+    );
+  });
+}
 
+// Export app for Vercel/serverless environments
 export default app;

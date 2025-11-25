@@ -1,20 +1,26 @@
-# Ignore templates directory to prevent unnecessary uploads
-templates/
-
-# Standard ignores
+# Dependencies - npm install will be run
 node_modules/
+
+# Test files
+test-*.ts
+test-*.js
+
+# Source files - will be compiled by build command
+src/
+
+# Development dependencies
+.vscode/
 .env.local
 *.log
-.DS_Store
-.vscode/
+
+# Templates directory
+templates/
+
+# Git
 .git/
 .gitignore
-README.md
+
+# Config files
 tsconfig.json
 package-lock.json
-
-# Test and source files (these are compiled to dist/)
-src/
-test-*.ts
-*.ts
-!dist/**
+README.md

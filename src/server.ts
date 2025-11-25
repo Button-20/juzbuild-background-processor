@@ -282,12 +282,12 @@ const initializeRedis = async () => {
   }
 };
 
-// Initialize Redis on module load
+// Initialize Redis on module load (for both local and serverless)
 initializeRedis();
 
-// Start server only in local development
-// In Vercel/serverless, the app is exported and doesn't call listen()
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+// Start listening server ONLY in local development
+// Vercel serverless will import and use the app directly
+if (process.env.NODE_ENV !== "production") {
   app.listen(port, () => {
     console.log(
       `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`
@@ -301,5 +301,5 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   });
 }
 
-// Export app for Vercel/serverless environments
+// Export app for Vercel serverless and other environments
 export default app;

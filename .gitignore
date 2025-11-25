@@ -62,11 +62,9 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variable files
-.env
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -132,7 +130,6 @@ desktop.ini
 Thumbs.db
 
 # IDE files
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -194,3 +191,4 @@ ecosystem.config.js
 *.cpuprofile
 *.heapsnapshot
 juzbuild-ga4-e8c2d0e54b5e.json
+config.bat

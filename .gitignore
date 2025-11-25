@@ -194,3 +194,4 @@ ecosystem.config.js
 *.cpuprofile
 *.heapsnapshot
 juzbuild-ga4-e8c2d0e54b5e.json
+config.bat

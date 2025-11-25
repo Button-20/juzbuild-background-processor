@@ -1,4 +1,4 @@
-# Ignore templates directory to prevent build errors
+# Ignore templates directory to prevent unnecessary uploads
 
 templates/
 
@@ -6,12 +6,18 @@ templates/
 
 node_modules/
 .env.local
-.env
 \*.log
 .DS_Store
 .vscode/
 .git/
+.gitignore
+README.md
+tsconfig.json
+package-lock.json
 
-# Build outputs that should be rebuilt
+# Test and source files (these are compiled to dist/)
 
-dist/
+src/
+test-_.ts
+_.ts
+!dist/\*\*

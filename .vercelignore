@@ -17,5 +17,4 @@ package-lock.json
 src/
 test-*.ts
 *.ts
-!api/**
 !dist/**

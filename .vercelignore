@@ -1,12 +1,10 @@
 # Ignore templates directory to prevent unnecessary uploads
-
 templates/
 
 # Standard ignores
-
 node_modules/
 .env.local
-\*.log
+*.log
 .DS_Store
 .vscode/
 .git/
@@ -16,8 +14,8 @@ tsconfig.json
 package-lock.json
 
 # Test and source files (these are compiled to dist/)
-
 src/
-test-_.ts
-_.ts
-!dist/\*\*
+test-*.ts
+*.ts
+!api/**
+!dist/**

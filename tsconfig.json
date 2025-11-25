@@ -41,7 +41,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "allowJs": true,
-    "checkJs": false
+    "checkJs": true
   },
   "include": ["src/**/*"],
   "exclude": [

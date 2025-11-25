@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  getFacebookUrl,
-  getInstagramUrl,
-  getTwitterUrl,
-} from "@/lib/siteConfig";
+import { fetchContactData } from "@/lib/contactInfo-client";
 import { footerlinks } from "@/types/footerlinks";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -13,6 +9,11 @@ import { useEffect, useState } from "react";
 const Footer = () => {
   const [footerLinks, setFooterLinks] = useState<footerlinks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [socialLinks, setSocialLinks] = useState({
+    twitter: "https://twitter.com/homelyrealestate",
+    facebook: "https://facebook.com/homelyrealestate",
+    instagram: "https://instagram.com/homelyrealestate",
+  });
 
   useEffect(() => {
     const fetchFooterLinks = async () => {
@@ -42,7 +43,24 @@ const Footer = () => {
       }
     };
 
+    const loadSocialLinks = async () => {
+      try {
+        const data = await fetchContactData();
+        setSocialLinks({
+          twitter:
+            data.social.twitter || "https://twitter.com/homelyrealestate",
+          facebook:
+            data.social.facebook || "https://facebook.com/homelyrealestate",
+          instagram:
+            data.social.instagram || "https://instagram.com/homelyrealestate",
+        });
+      } catch (error) {
+        console.error("Error loading social links:", error);
+      }
+    };
+
     fetchFooterLinks();
+    loadSocialLinks();
   }, []);
 
   return (
@@ -70,7 +88,7 @@ const Footer = () => {
           </div>
           <div className="flex items-center gap-4 sm:gap-6 w-full lg:w-auto justify-center lg:justify-start">
             <Link
-              href={getTwitterUrl()}
+              href={socialLinks.twitter}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -82,7 +100,7 @@ const Footer = () => {
               />
             </Link>
             <Link
-              href={getFacebookUrl()}
+              href={socialLinks.facebook}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -94,7 +112,7 @@ const Footer = () => {
               />
             </Link>
             <Link
-              href={getInstagramUrl()}
+              href={socialLinks.instagram}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -172,12 +190,12 @@ const Footer = () => {
           <p className="text-white/40 text-xs sm:text-sm order-2 md:order-1 w-full md:w-auto text-center md:text-left">
             ©2025 Homely - Design & Developed by{" "}
             <Link
-              href="https://icanvassolutions.com/"
+              href="https://juzbuild.com/"
               className="hover:text-primary duration-300"
               target="_blank"
               rel="noopener noreferrer"
             >
-              iCanvas Solutions
+              Juzbuild
             </Link>
           </p>
           <div className="flex gap-4 sm:gap-8 items-center order-1 md:order-2 w-full md:w-auto justify-center md:justify-end">

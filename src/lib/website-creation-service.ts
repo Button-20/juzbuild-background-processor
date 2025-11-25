@@ -157,22 +157,6 @@ class WebsiteCreationService {
       NEXT_PUBLIC_COMPANY_NAME: options.companyName,
       NEXT_PUBLIC_COMPANY_TAGLINE: options.tagline,
 
-      // Public configuration - Contact Info
-      NEXT_PUBLIC_EMAIL: options.supportEmail || options.userEmail,
-      NEXT_PUBLIC_SUPPORT_EMAIL:
-        options.supportEmail || options.userEmail || "",
-      NEXT_PUBLIC_PHONE_NUMBER: options.phoneNumber || "",
-      NEXT_PUBLIC_WHATSAPP_NUMBER:
-        options.whatsappNumber || options.phoneNumber || "",
-      NEXT_PUBLIC_ADDRESS: options.address || "",
-
-      // Public configuration - Social Media
-      NEXT_PUBLIC_FACEBOOK_URL: options.facebookUrl || "",
-      NEXT_PUBLIC_TWITTER_URL: options.twitterUrl || "",
-      NEXT_PUBLIC_INSTAGRAM_URL: options.instagramUrl || "",
-      NEXT_PUBLIC_LINKEDIN_URL: options.linkedinUrl || "",
-      NEXT_PUBLIC_YOUTUBE_URL: options.youtubeUrl || "",
-
       // Public configuration - Email settings
       NEXT_PUBLIC_FROM_EMAIL:
         options.supportEmail ||
@@ -794,6 +778,19 @@ class WebsiteCreationService {
             leadCaptureMethods: options.leadCaptureMethods || [],
             includedPages: options.includedPages || [],
             userEmail: options.userEmail,
+            // Logo
+            logoUrl: options.logoUrl || "",
+            // Contact Information
+            phoneNumber: options.phoneNumber || "",
+            whatsappNumber: options.whatsappNumber || "",
+            supportEmail: options.supportEmail || options.userEmail || "",
+            address: options.address || "",
+            // Social Media Links
+            facebookUrl: options.facebookUrl || "",
+            twitterUrl: options.twitterUrl || "",
+            instagramUrl: options.instagramUrl || "",
+            linkedinUrl: options.linkedinUrl || "",
+            youtubeUrl: options.youtubeUrl || "",
             createdAt: new Date(),
             updatedAt: new Date(),
           },

@@ -1,15 +1,12 @@
 /**
  * Site Configuration Utility
  *
- * This file provides easy access to site configuration values
- * that are set in next.config.ts and made available as environment variables.
- *
- * To update contact information, social links, etc., modify the values in:
- * 1. next.config.ts (for default values)
- * 2. .env.local (for environment-specific overrides)
+ * This file provides easy access to site configuration values.
+ * Contact information and social links are now fetched from the MongoDB settings collection.
  */
 
 export interface SiteConfig {
+  logoUrl: string;
   contact: {
     phone: string;
     email: string;
@@ -30,34 +27,96 @@ export interface SiteConfig {
   };
 }
 
+// Cache for settings to avoid repeated database calls
+let cachedSettings: any = null;
+let cacheTimeout: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Get the complete site configuration
+ * Fetch settings from MongoDB with caching
  */
-export const getSiteConfig = (): SiteConfig => {
+async function getSettingsFromDatabase(): Promise<any> {
+  const now = Date.now();
+
+  // Return cached settings if still valid
+  if (cachedSettings && now < cacheTimeout) {
+    return cachedSettings;
+  }
+
+  try {
+    // Dynamically import MongoDB to avoid bundling it in client
+    const { MongoClient } = await import("mongodb");
+    const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
+    const client = new MongoClient(mongoUri);
+    await client.connect();
+
+    const db = client.db();
+    const settingsCollection = db.collection("settings");
+    const settings = await settingsCollection.findOne({});
+
+    await client.close();
+
+    // Cache the settings
+    cachedSettings = settings;
+    cacheTimeout = now + CACHE_DURATION;
+
+    return settings;
+  } catch (error) {
+    console.error("Failed to fetch settings from database:", error);
+    // Return fallback values on error
+    return null;
+  }
+}
+
+/**
+ * Get the complete site configuration (for server-side use)
+ */
+export const getSiteConfig = async (): Promise<SiteConfig> => {
+  const dbSettings = await getSettingsFromDatabase();
+
   return {
+    logoUrl: dbSettings?.logoUrl || "",
     contact: {
-      phone: process.env.NEXT_PUBLIC_PHONE_NUMBER || "+233-550-653-404",
-      email: process.env.NEXT_PUBLIC_EMAIL || "hello@homely.com",
+      phone:
+        dbSettings?.phoneNumber ||
+        process.env.NEXT_PUBLIC_PHONE_NUMBER ||
+        "+233-550-653-404",
+      email:
+        dbSettings?.userEmail ||
+        process.env.NEXT_PUBLIC_EMAIL ||
+        "hello@homely.com",
       supportEmail:
-        process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@homely.com",
+        dbSettings?.supportEmail ||
+        process.env.NEXT_PUBLIC_SUPPORT_EMAIL ||
+        "support@homely.com",
       whatsappNumber:
-        process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "+233123456789",
-      address: process.env.NEXT_PUBLIC_ADDRESS || "Accra, Ghana",
+        dbSettings?.whatsappNumber ||
+        process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ||
+        "+233123456789",
+      address:
+        dbSettings?.address ||
+        process.env.NEXT_PUBLIC_ADDRESS ||
+        "Accra, Ghana",
     },
     social: {
       facebook:
+        dbSettings?.facebookUrl ||
         process.env.NEXT_PUBLIC_FACEBOOK_URL ||
         "https://facebook.com/homelyrealestate",
       twitter:
+        dbSettings?.twitterUrl ||
         process.env.NEXT_PUBLIC_TWITTER_URL ||
         "https://twitter.com/homelyrealestate",
       instagram:
+        dbSettings?.instagramUrl ||
         process.env.NEXT_PUBLIC_INSTAGRAM_URL ||
         "https://instagram.com/homelyrealestate",
       linkedin:
+        dbSettings?.linkedinUrl ||
         process.env.NEXT_PUBLIC_LINKEDIN_URL ||
         "https://linkedin.com/company/homelyrealestate",
-      youtube: process.env.NEXT_PUBLIC_YOUTUBE_URL || "",
+      youtube:
+        dbSettings?.youtubeUrl || process.env.NEXT_PUBLIC_YOUTUBE_URL || "",
     },
     company: {
       name: process.env.NEXT_PUBLIC_COMPANY_NAME || "Homely Real Estate",
@@ -70,40 +129,77 @@ export const getSiteConfig = (): SiteConfig => {
 /**
  * Get contact information
  */
-export const getContactInfo = () => {
-  return getSiteConfig().contact;
+export const getContactInfo = async () => {
+  const config = await getSiteConfig();
+  return config.contact;
 };
 
 /**
  * Get social media links
  */
-export const getSocialLinks = () => {
-  return getSiteConfig().social;
+export const getSocialLinks = async () => {
+  const config = await getSiteConfig();
+  return config.social;
 };
 
 /**
  * Get company information
  */
-export const getCompanyInfo = () => {
-  return getSiteConfig().company;
+export const getCompanyInfo = async () => {
+  const config = await getSiteConfig();
+  return config.company;
 };
 
 /**
  * Utility functions for common use cases
  */
-export const getPhoneNumber = () => getSiteConfig().contact.phone;
-export const getEmail = () => getSiteConfig().contact.email;
-export const getSupportEmail = () => getSiteConfig().contact.supportEmail;
-export const getWhatsAppNumber = () => getSiteConfig().contact.whatsappNumber;
-export const getAddress = () => getSiteConfig().contact.address;
+export const getPhoneNumber = async () => {
+  const config = await getSiteConfig();
+  return config.contact.phone;
+};
+
+export const getEmail = async () => {
+  const config = await getSiteConfig();
+  return config.contact.email;
+};
+
+export const getSupportEmail = async () => {
+  const config = await getSiteConfig();
+  return config.contact.supportEmail;
+};
+
+export const getWhatsAppNumber = async () => {
+  const config = await getSiteConfig();
+  return config.contact.whatsappNumber;
+};
+
+export const getAddress = async () => {
+  const config = await getSiteConfig();
+  return config.contact.address;
+};
 
 // Social media getters
-export const getFacebookUrl = () => getSiteConfig().social.facebook;
-export const getTwitterUrl = () => getSiteConfig().social.twitter;
-export const getInstagramUrl = () => getSiteConfig().social.instagram;
-export const getLinkedInUrl = () => getSiteConfig().social.linkedin;
-export const getYouTubeUrl = () => getSiteConfig().social.youtube;
+export const getFacebookUrl = async () => {
+  const config = await getSiteConfig();
+  return config.social.facebook;
+};
 
-// Company getters
-export const getCompanyName = () => getSiteConfig().company.name;
-export const getCompanyTagline = () => getSiteConfig().company.tagline;
+export const getTwitterUrl = async () => {
+  const config = await getSiteConfig();
+  return config.social.twitter;
+};
+
+export const getInstagramUrl = async () => {
+  const config = await getSiteConfig();
+  return config.social.instagram;
+};
+
+export const getLinkedInUrl = async () => {
+  const config = await getSiteConfig();
+  return config.social.linkedin;
+};
+
+export const getYouTubeUrl = async () => {
+  const config = await getSiteConfig();
+  return config.social.youtube;
+};

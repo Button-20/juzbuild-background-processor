@@ -2,8 +2,8 @@
 
 import SEOComponent from "@/components/shared/SEOComponent";
 import { useSettings } from "@/hooks/useSettings";
+import { fetchContactData } from "@/lib/contactInfo-client";
 import { generatePageMetadata, SEO_CONFIG } from "@/lib/seo";
-import { getAddress, getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,12 +34,34 @@ export default function ContactUs() {
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactData, setContactData] = useState({
+    phone: "",
+    email: "",
+    address: "",
+  });
   const [submitStatus, setSubmitStatus] = useState<{
     type: "success" | "error" | null;
     message: string;
   }>({ type: null, message: "" });
   const { isPhoneEnabled, isEmailEnabled, isContactFormEnabled } =
     useSettings();
+
+  // Load contact information
+  useEffect(() => {
+    const loadContactData = async () => {
+      try {
+        const data = await fetchContactData();
+        setContactData({
+          phone: data.contact.phone || "",
+          email: data.contact.supportEmail || "",
+          address: data.contact.address || "",
+        });
+      } catch (error) {
+        console.error("Error loading contact data:", error);
+      }
+    };
+    loadContactData();
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -193,18 +215,18 @@ export default function ContactUs() {
               <div className="absolute bottom-6 left-6 lg:bottom-12 lg:left-12 flex flex-col gap-4 text-white">
                 {/* Only show phone if enabled */}
                 {isPhoneEnabled && (
-                  <Link href={`tel:${getPhoneNumber()}`} className="w-fit">
+                  <Link href={`tel:${contactData.phone}`} className="w-fit">
                     <div className="flex items-center gap-4 group w-fit">
                       <Icon icon={"ph:phone"} width={32} height={32} />
                       <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
-                        {getPhoneNumber()}
+                        {contactData.phone}
                       </p>
                     </div>
                   </Link>
                 )}
                 {/* Only show email if enabled */}
                 {isEmailEnabled && (
-                  <Link href={`mailto:${getSupportEmail()}`} className="w-fit">
+                  <Link href={`mailto:${contactData.email}`} className="w-fit">
                     <div className="flex items-center gap-4 group w-fit">
                       <Icon
                         icon={"ph:envelope-simple"}
@@ -212,7 +234,7 @@ export default function ContactUs() {
                         height={32}
                       />
                       <p className="text-sm xs:text-base mobile:text-xm font-normal group-hover:text-primary">
-                        {getSupportEmail()}
+                        {contactData.email}
                       </p>
                     </div>
                   </Link>
@@ -220,7 +242,7 @@ export default function ContactUs() {
                 <div className="flex items-center gap-4">
                   <Icon icon={"ph:map-pin"} width={32} height={32} />
                   <p className="text-sm xs:text-base mobile:text-xm font-normal">
-                    {getAddress()}
+                    {contactData.address}
                   </p>
                 </div>
               </div>

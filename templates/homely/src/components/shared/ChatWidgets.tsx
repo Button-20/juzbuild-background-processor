@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useSettings } from "@/hooks/useSettings";
-import { getSupportEmail, getWhatsAppNumber } from "@/lib/siteConfig";
+import { fetchContactData } from "@/lib/contactInfo-client";
 
 interface ChatWidgetsProps {
   whatsappNumber?: string;
@@ -12,12 +12,16 @@ interface ChatWidgetsProps {
 }
 
 export default function ChatWidgets({
-  whatsappNumber = getWhatsAppNumber(), // Get from site configuration
+  whatsappNumber,
   whatsappMessage = "Hi! I'm interested in your real estate properties.",
 }: ChatWidgetsProps) {
   const [showAiChat, setShowAiChat] = useState(false);
   const [showWidgets, setShowWidgets] = useState(false);
   const { isWhatsAppEnabled, isAiChatbotEnabled } = useSettings();
+  const [contactData, setContactData] = useState({
+    whatsappNumber: whatsappNumber || "",
+    supportEmail: "",
+  });
   const [aiMessages, setAiMessages] = useState([
     {
       id: 1,
@@ -29,6 +33,25 @@ export default function ChatWidgets({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load contact data on mount
+  useEffect(() => {
+    const loadContactData = async () => {
+      try {
+        const data = await fetchContactData();
+        setContactData({
+          whatsappNumber: whatsappNumber || data.contact.whatsappNumber || "",
+          supportEmail: data.contact.supportEmail || "",
+        });
+      } catch (error) {
+        console.error("Error loading contact data:", error);
+        if (whatsappNumber) {
+          setContactData((prev) => ({ ...prev, whatsappNumber }));
+        }
+      }
+    };
+    loadContactData();
+  }, [whatsappNumber]);
 
   // Auto scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -141,8 +164,9 @@ export default function ChatWidgets({
   };
 
   const openWhatsApp = () => {
+    if (!contactData.whatsappNumber) return;
     const encodedMessage = encodeURIComponent(whatsappMessage);
-    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(
+    const whatsappUrl = `https://wa.me/${contactData.whatsappNumber.replace(
       /[^0-9]/g,
       ""
     )}?text=${encodedMessage}`;
@@ -242,7 +266,7 @@ export default function ChatWidgets({
       message.includes("phone") ||
       message.includes("email")
     ) {
-      return `You can contact us at ${getSupportEmail()} or click the WhatsApp button to chat with us directly! We're here to help you find your perfect property.`;
+      return `You can contact us at ${contactData.supportEmail} or click the WhatsApp button to chat with us directly! We're here to help you find your perfect property.`;
     }
 
     if (

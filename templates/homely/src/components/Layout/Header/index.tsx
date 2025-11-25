@@ -1,6 +1,6 @@
 "use client";
 import { useSettings } from "@/hooks/useSettings";
-import { getPhoneNumber, getSupportEmail } from "@/lib/siteConfig";
+import { fetchContactData } from "@/lib/contactInfo-client";
 import { NavLinks } from "@/types/navlink";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
@@ -15,13 +15,14 @@ const Header: React.FC = () => {
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [navLinks, setNavLinks] = useState<NavLinks[]>([]);
   const [isLoadingNav, setIsLoadingNav] = useState(true);
+  const [contactInfo, setContactInfo] = useState({ phone: "", email: "" });
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const { isPhoneEnabled, isEmailEnabled } = useSettings();
 
   const sideMenuRef = useRef<HTMLDivElement>(null);
 
-  // Fetch navigation links
+  // Fetch navigation links and contact info
   useEffect(() => {
     const fetchNavLinks = async () => {
       try {
@@ -46,7 +47,20 @@ const Header: React.FC = () => {
       }
     };
 
+    const loadContactInfo = async () => {
+      try {
+        const data = await fetchContactData();
+        setContactInfo({
+          phone: data.contact.phone,
+          email: data.contact.supportEmail,
+        });
+      } catch (error) {
+        console.error("Error loading contact info:", error);
+      }
+    };
+
     fetchNavLinks();
+    loadContactInfo();
   }, []);
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -121,7 +135,7 @@ const Header: React.FC = () => {
             {isPhoneEnabled && (
               <div className={`hidden md:block`}>
                 <Link
-                  href={`tel:${getPhoneNumber()}`}
+                  href={`tel:${contactInfo.phone}`}
                   className={`text-base text-inherit flex items-center gap-2 border-r pr-6 ${
                     isHomepage
                       ? sticky
@@ -131,7 +145,7 @@ const Header: React.FC = () => {
                   }`}
                 >
                   <Icon icon={"ph:phone-bold"} width={24} height={24} />
-                  {getPhoneNumber()}
+                  {contactInfo.phone}
                 </Link>
               </div>
             )}
@@ -212,19 +226,19 @@ const Header: React.FC = () => {
             {/* Only show email if enabled */}
             {isEmailEnabled && (
               <Link
-                href={`mailto:${getSupportEmail()}`}
+                href={`mailto:${contactInfo.email}`}
                 className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
               >
-                {getSupportEmail()}
+                {contactInfo.email}
               </Link>
             )}
             {/* Only show phone if enabled */}
             {isPhoneEnabled && (
               <Link
-                href={`tel:${getPhoneNumber()}`}
+                href={`tel:${contactInfo.phone}`}
                 className="text-base sm:text-xm font-medium text-inherit hover:text-primary"
               >
-                {getPhoneNumber()}{" "}
+                {contactInfo.phone}{" "}
               </Link>
             )}
           </div>

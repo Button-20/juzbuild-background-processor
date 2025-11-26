@@ -23,7 +23,7 @@ echo ""
 
 # Method 1: Use webroot renewal (preferred with Nginx)
 echo "🔐 Attempting webroot renewal..."
-sudo certbot renew --webroot -w /var/www/html --force-renewal -d "$DOMAIN"
+sudo certbot certonly --webroot -w /var/www/html -d "$DOMAIN" --force-renewal
 
 if [ $? -eq 0 ]; then
     echo "✅ Certificate renewed successfully!"
@@ -40,7 +40,7 @@ else
     sudo systemctl stop nginx
     
     echo "🔐 Attempting standalone renewal..."
-    sudo certbot renew --standalone --force-renewal -d "$DOMAIN"
+    sudo certbot certonly --standalone -d "$DOMAIN" --force-renewal
     
     if [ $? -eq 0 ]; then
         echo "✅ Certificate renewed successfully!"

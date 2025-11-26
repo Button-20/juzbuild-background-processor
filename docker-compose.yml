@@ -1,10 +1,8 @@
-version: "3.8"
-
 services:
   background-processor:
     # For local development, use: build: .
     # For EC2 with GitHub Actions, this pulls the built image
-    image: ghcr.io/Button-20/juzbuild-background-processor:latest
+    image: ghcr.io/button-20/juzbuild-background-processor:latest
     build:
       context: .
       dockerfile: Dockerfile

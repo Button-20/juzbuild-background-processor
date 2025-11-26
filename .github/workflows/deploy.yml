@@ -107,6 +107,9 @@ jobs:
             echo "⬇️  Pulling latest Docker image..."
             docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest"
             
+            echo "🛑 Stopping system Redis service..."
+            sudo systemctl stop redis-server || true
+            
             echo "🛑 Stopping old containers..."
             docker-compose down || true
             

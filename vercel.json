@@ -1,18 +1,5 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "dist/server.js": {
-      "runtime": "@vercel/node@2.15.8",
-      "maxDuration": 300,
-      "memory": 1024
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/server.js"
-    }
-  ]
+  "outputDirectory": "dist"
 }

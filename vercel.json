@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "functions": {
     "dist/server.js": {
-      "runtime": "nodejs20.x",
+      "runtime": "nodejs18.x",
       "maxDuration": 300,
       "memory": 1024
     }

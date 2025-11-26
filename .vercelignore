@@ -4,18 +4,14 @@ node_modules/
 
 # Test files
 
-test-_.ts
-test-_.js
-
-# Source files - will be compiled by build command
-
-src/
+test-*.ts
+test-*.js
 
 # Development dependencies
 
 .vscode/
 .env.local
-\*.log
+*.log
 
 # Templates directory
 

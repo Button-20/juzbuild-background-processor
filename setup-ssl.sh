@@ -29,9 +29,10 @@ sudo apt-get upgrade -y
 echo "📦 Installing Nginx and Certbot..."
 sudo apt-get install -y nginx certbot python3-certbot-nginx
 
-# Create certbot directory
-echo "📁 Creating certificate directory..."
-sudo mkdir -p /var/www/certbot
+# Create webroot directory for Let's Encrypt validation
+echo "📁 Creating webroot directory..."
+sudo mkdir -p /var/www/html
+sudo chown -R www-data:www-data /var/www/html
 
 # Stop Nginx temporarily for certificate validation
 echo "🛑 Stopping Nginx..."
@@ -39,7 +40,8 @@ sudo systemctl stop nginx || true
 
 # Get SSL certificate from Let's Encrypt
 echo "🔐 Getting SSL certificate from Let's Encrypt..."
-sudo certbot certonly --standalone \
+sudo certbot certonly --webroot \
+    -w /var/www/html \
     -d "$DOMAIN" \
     --non-interactive \
     --agree-tos \

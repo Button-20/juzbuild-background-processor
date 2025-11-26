@@ -12,6 +12,7 @@
     "target": "ES2022",
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowJs": true,
     "checkJs": true
   },
   "include": ["src/**/*"],

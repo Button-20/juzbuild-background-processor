@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon --exec \"node --loader ts-node/esm\" src/server.ts",
-    "build": "tsc --checkJs=",
+    "build": "tsc --noEmit",
     "clean": "if exist dist rmdir /s /q dist",
     "build:clean": "npm run clean && npm run build",
     "verify": "npm run build && node dist/server.js --version",

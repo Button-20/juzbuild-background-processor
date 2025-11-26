@@ -167,6 +167,16 @@ sudo systemctl enable nginx
 
 # Setup auto-renewal for certificates
 echo "⏰ Setting up certificate auto-renewal..."
+
+# Create renewal hook to reload Nginx
+sudo mkdir -p /etc/letsencrypt/renewal-hooks/post
+sudo tee /etc/letsencrypt/renewal-hooks/post/nginx.sh > /dev/null <<'EOFHOOK'
+#!/bin/bash
+systemctl reload nginx
+EOFHOOK
+sudo chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
+
+# Enable and start the renewal timer
 sudo systemctl enable certbot.timer
 sudo systemctl start certbot.timer
 

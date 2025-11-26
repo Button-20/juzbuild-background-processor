@@ -4,14 +4,14 @@ node_modules/
 
 # Test files
 
-test-*.ts
-test-*.js
+test-_.ts
+test-_.js
 
 # Development dependencies
 
 .vscode/
 .env.local
-*.log
+\*.log
 
 # Templates directory
 

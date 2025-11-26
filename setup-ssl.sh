@@ -46,13 +46,26 @@ sudo certbot certonly --standalone \
     -m "$EMAIL" \
     --preferred-challenges http
 
+# Wait a moment for files to be written
+sleep 2
+
 # Verify certificate was created
-if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
     echo "✅ SSL certificate successfully created!"
     echo "   Location: /etc/letsencrypt/live/$DOMAIN/"
 else
-    echo "❌ Failed to create SSL certificate"
-    exit 1
+    echo "⚠️  Checking alternate certificate location..."
+    # Sometimes certbot creates in a different path
+    if sudo test -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem"; then
+        echo "✅ SSL certificate found (with sudo)"
+        echo "   Location: /etc/letsencrypt/live/$DOMAIN/"
+    else
+        echo "❌ Failed to create SSL certificate"
+        echo "   Expected location: /etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+        echo "   Checking what was created..."
+        sudo ls -la /etc/letsencrypt/live/ || true
+        exit 1
+    fi
 fi
 
 # Create Nginx configuration

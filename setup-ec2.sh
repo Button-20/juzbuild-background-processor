@@ -16,22 +16,39 @@ echo "📦 Updating system packages..."
 sudo apt-get update
 sudo apt-get upgrade -y
 
-# Install Docker
-echo "🐳 Installing Docker..."
+# Install required packages
+echo "📦 Installing required packages..."
 sudo apt-get install -y \
   apt-transport-https \
   ca-certificates \
   curl \
   gnupg \
-  lsb-release
+  lsb-release \
+  git
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+# Remove any existing Docker GPG keys to avoid conflicts
+echo "🧹 Cleaning up old Docker configurations..."
+sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+sudo rm -f /etc/apt/keyrings/docker.asc
+sudo rm -f /etc/apt/sources.list.d/docker.list
 
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+# Add Docker GPG key (new method)
+echo "🔑 Adding Docker GPG key..."
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
+# Add Docker repository (new method)
+echo "📦 Adding Docker repository..."
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update package list
+echo "📦 Updating package list..."
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+# Install Docker
+echo "🐳 Installing Docker..."
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Start Docker
 echo "▶️  Starting Docker service..."
@@ -41,19 +58,19 @@ sudo systemctl enable docker
 # Add ubuntu user to docker group
 echo "👤 Adding ubuntu user to docker group..."
 sudo usermod -aG docker ubuntu
-newgrp docker << EOF
-  echo "✅ Docker group activated"
-EOF
 
-# Install Docker Compose
-echo "📋 Installing Docker Compose..."
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" \
+# Install Docker Compose standalone (optional, but recommended)
+echo "📋 Installing Docker Compose standalone..."
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" \
   -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-# Install Git
-echo "📚 Installing Git..."
-sudo apt-get install -y git
+# Verify installations
+echo ""
+echo "✅ Verifying installations..."
+docker --version
+docker-compose --version
+git --version
 
 # Create application directory
 echo "📁 Creating application directory..."

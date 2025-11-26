@@ -81,7 +81,7 @@ jobs:
           echo "$EC2_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
-          
+
           ssh -i ~/.ssh/id_rsa ${EC2_USER}@${EC2_HOST} << 'EOFSCRIPT'
             set -e
             

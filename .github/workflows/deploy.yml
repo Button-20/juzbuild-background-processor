@@ -83,8 +83,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          ssh -i ~/.ssh/id_rsa ${EC2_USER}@${EC2_HOST} << 'EOFSCRIPT'
+          ssh -i ~/.ssh/id_rsa ${EC2_USER}@${EC2_HOST} << EOFSCRIPT
             set -e
+            
+            export DOCKER_REGISTRY="$DOCKER_REGISTRY"
+            export DOCKER_USERNAME="$DOCKER_USERNAME"
+            export DOCKER_PASSWORD="$DOCKER_PASSWORD"
+            export IMAGE_NAME="$IMAGE_NAME"
             
             echo "===================================="
             echo "🚀 Starting deployment to EC2"

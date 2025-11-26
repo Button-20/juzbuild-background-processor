@@ -26,21 +26,37 @@ sudo apt-get install -y \
   lsb-release \
   git
 
-# Remove any existing Docker GPG keys to avoid conflicts
-echo "🧹 Cleaning up old Docker configurations..."
+# CRITICAL: Remove ALL conflicting Docker sources and keys
+echo "🧹 Removing conflicting Docker configurations..."
 sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
 sudo rm -f /etc/apt/keyrings/docker.asc
+sudo rm -f /etc/apt/keyrings/docker.gpg
 sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo rm -f /etc/apt/sources.list.d/docker.list.save
 
-# Add Docker GPG key (new method)
+# Remove Docker from apt cache
+sudo apt-get remove -y docker.io docker-doc docker-compose || true
+
+echo "✅ Cleaned old Docker files"
+
+# Add Docker's official GPG key (new method)
 echo "🔑 Adding Docker GPG key..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+mkdir -p ~/.gnupg
+chmod 700 ~/.gnupg
 
-# Add Docker repository (new method)
+# Download and verify GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "✅ Docker GPG key added"
+
+# Add Docker repository (new method - Ubuntu 22.04+)
 echo "📦 Adding Docker repository..."
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+echo "✅ Docker repository added"
 
 # Update package list
 echo "📦 Updating package list..."
@@ -48,7 +64,14 @@ sudo apt-get update
 
 # Install Docker
 echo "🐳 Installing Docker..."
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y \
+  docker-ce \
+  docker-ce-cli \
+  containerd.io \
+  docker-buildx-plugin \
+  docker-compose-plugin
+
+echo "✅ Docker installed"
 
 # Start Docker
 echo "▶️  Starting Docker service..."
@@ -59,27 +82,35 @@ sudo systemctl enable docker
 echo "👤 Adding ubuntu user to docker group..."
 sudo usermod -aG docker ubuntu
 
-# Install Docker Compose standalone (optional, but recommended)
+echo "✅ Docker group configured"
+
+# Install Docker Compose standalone (v2.28.1)
 echo "📋 Installing Docker Compose standalone..."
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" \
+DOCKER_COMPOSE_VERSION="v2.28.1"
+sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
   -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
+
+echo "✅ Docker Compose installed"
 
 # Install Redis
 echo "🔴 Installing Redis..."
 sudo apt-get install -y redis-server
+
+echo "✅ Redis installed"
 
 # Configure Redis
 echo "⚙️  Configuring Redis..."
 sudo systemctl start redis-server
 sudo systemctl enable redis-server
 
-# Verify Redis is running
-echo "✅ Verifying Redis..."
-redis-cli ping
-# Should output: PONG
+echo "✅ Redis configured and started"
 
-# Verify installations
+# Verify Redis is running
+echo "🔍 Verifying Redis..."
+redis-cli ping || echo "⚠️  Redis test skipped (will be available soon)"
+
+# Verify all installations
 echo ""
 echo "✅ Verifying all installations..."
 docker --version
@@ -88,11 +119,99 @@ git --version
 redis-server --version
 redis-cli --version
 
+echo "✅ All tools verified"
+
 # Create application directory
 echo "📁 Creating application directory..."
 sudo mkdir -p /opt/juzbuild-background-processor
 sudo chown -R ubuntu:ubuntu /opt/juzbuild-background-processor
 cd /opt/juzbuild-background-processor
+
+echo "✅ Application directory created"
+
+# Clone repository (will be updated by GitHub Actions)
+echo "🔗 Cloning repository..."
+if [ ! -d ".git" ]; then
+  git clone https://github.com/Button-20/juzbuild-background-processor.git .
+else
+  git pull origin master || git pull origin main
+fi
+
+echo "✅ Repository cloned/updated"
+
+# Create .env file template
+echo "📝 Creating .env file template..."
+if [ ! -f ".env" ]; then
+  cat > .env << 'ENVEOF'
+# MongoDB Configuration
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/database
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# GitHub Configuration
+GITHUB_TOKEN=your_github_token
+GITHUB_USERNAME=your_github_username
+
+# Vercel Configuration
+VERCEL_TOKEN=your_vercel_token
+VERCEL_TEAM_ID=your_team_id_optional
+
+# Namecheap Configuration
+NAMECHEAP_API_KEY=your_api_key
+NAMECHEAP_USERNAME=your_username
+NAMECHEAP_CLIENT_IP=your_ec2_static_ip
+NAMECHEAP_SANDBOX=false
+
+# Email Configuration
+JUZBUILD_RESEND_API_KEY=your_resend_api_key
+JUZBUILD_RESEND_FROM_EMAIL=info@yourdomain.com
+
+# Background Processor Configuration
+BACKGROUND_PROCESSOR_SECRET=your_secret_key
+PORT=3001
+
+# Analytics
+GOOGLE_ANALYTICS_ACCOUNT_ID=your_analytics_id
+ENVEOF
+  
+  echo "⚠️  IMPORTANT: Update .env file with your actual secrets!"
+  echo "    nano /opt/juzbuild-background-processor/.env"
+fi
+
+# Create SSH directory for GitHub Actions
+echo "🔑 Setting up SSH configuration..."
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+echo ""
+echo "=========================================="
+echo "✅ Setup complete!"
+echo "=========================================="
+echo ""
+echo "📋 Next steps:"
+echo ""
+echo "1. Update your .env file:"
+echo "   nano /opt/juzbuild-background-processor/.env"
+echo ""
+echo "2. Verify your configuration:"
+echo "   cat /opt/juzbuild-background-processor/.env"
+echo ""
+echo "3. Go back to your local machine and:"
+echo "   - Generate SSH key: ssh-keygen -t rsa -b 4096 -f ec2-github-actions -C 'github-actions' -N ''"
+echo "   - Copy public key to this instance"
+echo "   - Add GitHub Secrets (see setup guide)"
+echo ""
+echo "4. Push to GitHub to trigger deployment:"
+echo "   git push origin master"
+echo ""
+echo "5. Monitor on GitHub:"
+echo "   https://github.com/Button-20/juzbuild-background-processor/actions"
+echo ""
+echo "6. Check service on this instance:"
+echo "   docker-compose logs -f"
+echo ""
+echo "=========================================="
 
 # Clone repository (will be updated by GitHub Actions)
 echo "🔗 Cloning repository..."

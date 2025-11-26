@@ -287,7 +287,10 @@ initializeRedis();
 
 // Start listening server ONLY in local development
 // Vercel serverless will import and use the app directly
-if (process.env.NODE_ENV !== "production" || process.env.DOCKER_CONTAINER === "true") {
+if (
+  process.env.NODE_ENV !== "production" ||
+  process.env.DOCKER_CONTAINER === "true"
+) {
   app.listen(port, () => {
     console.log(
       `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`

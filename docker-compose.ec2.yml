@@ -1,10 +1,11 @@
-version: "3.8"
+version: '3.8'
 
 services:
   background-processor:
-    build: .
-    expose:
-      - "3001"
+    image: ghcr.io/Button-20/juzbuild-background-processor:latest
+    ports:
+      - "3001:3001"
+    pull_policy: always
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -29,40 +30,11 @@ services:
       start_period: 40s
     networks:
       - juzbuild-network
-    depends_on:
-      - redis
-
-  redis:
-    image: redis:7-alpine
-    expose:
-      - "6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - juzbuild-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certs:/etc/nginx/certs:ro
-    depends_on:
-      - background-processor
-    restart: unless-stopped
-    networks:
-      - juzbuild-network
-
-volumes:
-  redis_data:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   juzbuild-network:

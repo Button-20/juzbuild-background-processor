@@ -1,246 +1,302 @@
-# GitHub Actions Configuration Guide
+# GitHub Actions - EC2 Deployment Pipeline
 
-This guide explains how to set up GitHub Actions secrets and workflows for the JuzBuild Background Processor.
+This guide explains how to set up GitHub Actions to automatically build Docker images and deploy them to your AWS EC2 instance.
 
-## Required Secrets Setup
-
-### 1. Vercel Deployment Secrets
-
-Go to: **Repository Settings → Secrets and variables → Actions**
-
-Add the following secrets:
+## Architecture
 
 ```
-VERCEL_TOKEN: <your-vercel-token>
-VERCEL_ORG_ID: <your-vercel-organization-id>
-VERCEL_PROJECT_ID: <your-background-processor-project-id>
+GitHub Repository
+       ↓
+GitHub Actions (Build)
+       ↓
+Docker Image → GitHub Container Registry (ghcr.io)
+       ↓
+GitHub Actions (Deploy)
+       ↓
+SSH → EC2 Instance
+       ↓
+Pull Image & Run docker-compose
 ```
 
-**How to get these values:**
-- `VERCEL_TOKEN`: From Vercel Dashboard → Settings → Tokens
-- `VERCEL_ORG_ID`: From Vercel Dashboard → Settings → General (Team ID)
-- `VERCEL_PROJECT_ID`: From your project settings
+## Prerequisites
 
-### 2. EC2 Deployment Secrets
+1. **GitHub Repository** - Already have: https://github.com/Button-20/juzbuild-background-processor
+2. **AWS EC2 Instance** - Ubuntu instance with static IP
+3. **Docker installed on EC2** - Use the `deploy-ec2.sh` script first
+4. **SSH Key Pair** - For accessing EC2 from GitHub Actions
+5. **Git access** - EC2 can pull code from GitHub
 
-Add for EC2 deployment pipeline:
+## Step 1: Generate EC2 SSH Key Pair
 
-```
-EC2_HOST: <your-ec2-public-or-elastic-ip>
-EC2_USERNAME: ec2-user (or ubuntu for Ubuntu AMIs)
-EC2_SSH_KEY: <your-private-ssh-key>
-```
+On your local machine:
 
-**How to get these values:**
-- `EC2_HOST`: Your EC2 Elastic IP
-- `EC2_USERNAME`: Usually `ec2-user` for Amazon Linux, `ubuntu` for Ubuntu
-- `EC2_SSH_KEY`: Your `.pem` file content (entire private key)
-
-**To add the SSH key:**
-1. Open your `.pem` file
-2. Copy the entire content
-3. Go to GitHub Secrets
-4. Create new secret `EC2_SSH_KEY`
-5. Paste the entire key content
-
-### 3. Slack Notifications (Optional)
-
-For deployment notifications:
-
-```
-SLACK_WEBHOOK: <your-slack-webhook-url>
-```
-
-**How to get this:**
-1. Go to https://api.slack.com/apps
-2. Create new app or select existing
-3. Enable "Incoming Webhooks"
-4. Create new webhook for your channel
-5. Copy webhook URL
-
-### 4. Docker Registry (GitHub Container Registry)
-
-The pipeline uses GitHub Container Registry (GHCR) which uses your GitHub token automatically.
-
-## Available Workflows
-
-### 1. **CI/CD Pipeline** (`ci-cd.yml`)
-Runs on every push and PR:
-- ✅ Build and test
-- ✅ Docker image build
-- ✅ Security scanning
-- ✅ Deploy to Vercel (master branch only)
-
-### 2. **Deploy to EC2** (`deploy-ec2.yml`)
-Manually triggered or auto-deploy on master:
-- ✅ Build Docker image
-- ✅ Push to GitHub Container Registry
-- ✅ Deploy to EC2 via SSH
-- ✅ Health check verification
-
-### 3. **Docker Image Push** (`docker-push.yml`)
-On every push to master/dev or tag creation:
-- ✅ Build multi-architecture images
-- ✅ Push to GitHub Container Registry
-- ✅ Tag with branch/version/sha
-
-### 4. **Code Quality** (`code-quality.yml`)
-On every push and PR:
-- ✅ TypeScript compilation
-- ✅ ESLint linting
-- ✅ Security audit
-- ✅ Dependency checks
-
-### 5. **Release** (`release.yml`)
-On version tag creation (e.g., `git tag v1.0.0`):
-- ✅ Create GitHub Release
-- ✅ Generate changelog
-- ✅ Docker image tagged
-- ✅ Slack notification
-
-## How to Trigger Deployments
-
-### Automatic Deployments
-- **Vercel**: Push to `master` branch (automatic)
-- **EC2**: Push to `master` branch or manually trigger
-
-### Manual Deployment to EC2
-1. Go to **Actions** tab
-2. Select **Deploy to EC2** workflow
-3. Click **Run workflow**
-4. Select environment (production/staging)
-5. Watch the deployment progress
-
-### Create a Release
 ```bash
-# Create and push a version tag
-git tag v1.0.0
-git push origin v1.0.0
+# Generate a new SSH key for GitHub Actions
+ssh-keygen -t rsa -b 4096 -f ec2-github-actions -C "github-actions-ec2" -N ""
+
+# View the private key
+cat ec2-github-actions
+
+# Copy the PUBLIC key to EC2
+cat ec2-github-actions.pub
 ```
 
-This will:
-- Create a GitHub Release
-- Build and push Docker image with version tag
-- Send notification to Slack
+## Step 2: Add Public Key to EC2
 
-## Viewing Workflow Results
+SSH into your EC2 instance:
 
-1. Go to **Actions** tab in your repository
-2. Click on a workflow run to see details
-3. Expand individual jobs to view logs
-4. Check for failures and their error messages
+```bash
+# SSH into EC2
+ssh -i your-ec2-key.pem ubuntu@your-ec2-ip
+
+# Add the GitHub Actions public key
+nano ~/.ssh/authorized_keys
+
+# Paste the public key from ec2-github-actions.pub
+# Save and exit (Ctrl+X, then Y, then Enter)
+
+# Set proper permissions
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+## Step 3: Configure GitHub Secrets
+
+Go to your GitHub repository:
+1. Settings → Secrets and variables → Actions
+2. Click "New repository secret"
+3. Add the following secrets:
+
+### Required Secrets:
+
+| Secret Name | Value | How to Get |
+|------------|-------|-----------|
+| `EC2_PRIVATE_KEY` | Contents of `ec2-github-actions` file | Copy the entire private key file content |
+| `EC2_USER` | `ubuntu` | Standard EC2 Ubuntu user |
+| `EC2_HOST` | Your EC2 static IP | Your AWS Elastic IP address |
+
+Example:
+```
+EC2_PRIVATE_KEY: -----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA...
+...
+-----END RSA PRIVATE KEY-----
+
+EC2_USER: ubuntu
+
+EC2_HOST: 54.123.45.67
+```
+
+## Step 4: Prepare EC2 Instance
+
+On your EC2 instance:
+
+```bash
+# Install Docker (if not already installed)
+sudo yum update -y
+sudo yum install docker -y
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add ubuntu user to docker group
+sudo usermod -aG docker ubuntu
+
+# Clone the repository
+cd /opt
+sudo git clone https://github.com/Button-20/juzbuild-background-processor.git
+cd juzbuild-background-processor
+sudo chown -R ubuntu:ubuntu .
+
+# Create .env file with your secrets
+nano .env
+# Paste environment variables here
+
+# Initialize docker-compose (it will fail without the image, that's OK)
+docker-compose config
+
+# Create directories if needed
+mkdir -p certs
+```
+
+## Step 5: Verify Pipeline
+
+### Trigger a deployment:
+
+Option 1: Push to master branch
+```bash
+git push origin master
+```
+
+Option 2: Use GitHub UI
+- Go to Actions tab
+- Click "Build and Deploy to AWS EC2"
+- Click "Run workflow"
+
+### Monitor the pipeline:
+
+1. Go to your GitHub repository
+2. Click "Actions" tab
+3. Click on the workflow run
+4. Watch the build and deploy steps execute
+
+### Check deployment on EC2:
+
+```bash
+# SSH into EC2
+ssh -i your-ec2-key.pem ubuntu@your-ec2-ip
+
+# Check container status
+docker-compose ps
+
+# View logs
+docker-compose logs -f background-processor
+
+# Test health endpoint
+curl http://localhost:3001/health
+```
+
+## Pipeline Workflow
+
+### Build Stage:
+1. ✅ Checkout code
+2. ✅ Set up Docker Buildx
+3. ✅ Log in to GitHub Container Registry
+4. ✅ Build Docker image with caching
+5. ✅ Push image to `ghcr.io/Button-20/juzbuild-background-processor:latest`
+
+### Deploy Stage (only on master push):
+1. ✅ SSH to EC2 instance
+2. ✅ Pull latest code from GitHub
+3. ✅ Log in to Docker registry
+4. ✅ Pull latest Docker image
+5. ✅ Stop old containers
+6. ✅ Start new containers with docker-compose
+7. ✅ Verify health check
+8. ✅ Clean up old images
+
+## Environment Variables on EC2
+
+The `docker-compose.yml` on EC2 reads from `.env` file:
+
+```bash
+# On EC2, create/update .env file
+nano /opt/juzbuild-background-processor/.env
+```
+
+Add:
+```bash
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/db
+REDIS_URL=redis://your-redis-url:6379
+VERCEL_TOKEN=your-vercel-token
+GITHUB_TOKEN=your-github-token
+# ... all other environment variables
+```
 
 ## Troubleshooting
 
-### Vercel Deployment Fails
-- Check `VERCEL_TOKEN` is valid
-- Verify `VERCEL_PROJECT_ID` matches your project
-- Check Vercel build settings
+### Build fails: "Could not resolve ./src/server.ts"
 
-### EC2 Deployment Fails
-- Verify `EC2_HOST` is reachable
-- Check `EC2_USERNAME` is correct for your AMI
-- Test SSH key manually: `ssh -i key.pem ec2-user@host`
-- Verify EC2 has Docker installed
-
-### Docker Image Push Fails
-- Check GitHub token permissions
-- Verify Docker file is correct
-- Check GitHub Container Registry settings
-
-### Code Quality Checks Fail
-- Fix TypeScript compilation errors
-- Run `npm run build` locally to verify
-- Check for syntax errors in source files
-
-## Best Practices
-
-1. **Always test locally before pushing**
-   ```bash
-   npm run build
-   npm run docker:build
-   docker-compose up
-   ```
-
-2. **Use meaningful commit messages**
-   - Helps with changelog generation
-   - Makes debugging easier
-
-3. **Tag releases properly**
-   ```bash
-   git tag -a v1.0.0 -m "Release version 1.0.0"
-   git push origin v1.0.0
-   ```
-
-4. **Monitor workflow runs**
-   - Check Actions tab after each push
-   - Review security scan results
-   - Verify deployments succeeded
-
-5. **Keep secrets secure**
-   - Never commit `.env` files
-   - Never paste secrets in code
-   - Rotate tokens periodically
-   - Use environment-specific secrets
-
-## Example: Complete Deployment Flow
-
+**Solution:** Ensure `.vercelignore` includes `src/` and `tsconfig.json`
 ```bash
-# 1. Make changes and test locally
-git add .
-git commit -m "feat: add new feature"
-
-# 2. Push to master (triggers CI/CD)
 git push origin master
-# → GitHub Actions runs tests and builds
-
-# 3. Create release when ready
-git tag v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
-# → Creates GitHub Release
-# → Builds Docker image with version tag
-# → Sends Slack notification
-
-# 4. Deploy to EC2 (manual or auto)
-# Option A: Auto-deploy via ci-cd.yml
-# Option B: Manual trigger via deploy-ec2.yml
-# → Deploys Docker container to EC2
-# → Runs health checks
-# → Notifies via Slack
-
-# 5. Monitor logs
-curl https://your-ec2-ip:3001/health
-docker-compose logs -f background-processor
 ```
 
-## Security Considerations
+### Deploy fails: "permission denied (publickey)"
 
-1. **GitHub Secrets**
-   - Only accessible to workflows
-   - Not logged in workflow output
-   - Rotate regularly
+**Solution:** Verify SSH key setup:
+```bash
+# On EC2
+cat ~/.ssh/authorized_keys | grep github-actions
 
-2. **Docker Images**
-   - Pushed to private GitHub Container Registry
-   - Requires GitHub authentication to pull
-   - Include only necessary files (.dockerignore)
+# On GitHub, verify secret is correct:
+# Settings → Secrets → EC2_PRIVATE_KEY
+```
 
-3. **EC2 Security**
-   - Use separate SSH key for CI/CD
-   - Restrict key permissions
-   - Keep EC2 security groups tight
-   - Use Elastic IP for consistency
+### Deploy fails: "docker pull" error
 
-4. **Environment Separation**
-   - Use different secrets for dev/prod
-   - Tag releases for production
-   - Test in staging before production
-   - Keep master branch protected
+**Solution:** Verify Docker login credentials:
+```bash
+# On EC2, test manual login
+echo "your-github-token" | docker login ghcr.io -u your-github-username --password-stdin
+```
 
-## Additional Resources
+### Deploy fails: "docker-compose: command not found"
+
+**Solution:** Install Docker Compose on EC2:
+```bash
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+### Health check fails after deployment
+
+**Solution:** Give container time to start:
+```bash
+# On EC2
+docker-compose logs background-processor
+
+# Wait a bit and try again
+sleep 20
+curl http://localhost:3001/health
+```
+
+### Old images taking up space
+
+**Solution:** Clean up old images (done automatically in pipeline):
+```bash
+# Manual cleanup
+docker image prune -f --all --filter "until=72h"
+docker volume prune -f
+```
+
+## Updating the Pipeline
+
+### To modify deployment behavior:
+1. Edit `.github/workflows/deploy.yml`
+2. Push to GitHub
+3. Changes apply to next deployment
+
+### To add new deployment environment:
+1. Add new secret with different EC2 details
+2. Add new job in workflow with conditions
+
+## Security Best Practices
+
+1. ✅ **Use GitHub Secrets** - Never commit credentials
+2. ✅ **Rotate SSH Keys** - Regularly update EC2_PRIVATE_KEY secret
+3. ✅ **Restrict Security Groups** - Only allow GitHub Actions IPs
+4. ✅ **Use GitHub Token** - Scoped personal access tokens for Docker registry
+5. ✅ **Monitor Deployments** - Check Actions logs for suspicious activity
+6. ✅ **Use SSH Keys** - Not passwords for EC2 access
+7. ✅ **Enable Branch Protection** - Require reviews before deployment to master
+
+## Manual Deployment (if needed)
+
+If the pipeline fails, you can deploy manually:
+
+```bash
+# On your local machine
+ssh -i your-ec2-key.pem ubuntu@your-ec2-ip << 'EOF'
+  cd /opt/juzbuild-background-processor
+  git pull origin master
+  docker-compose down
+  docker pull ghcr.io/Button-20/juzbuild-background-processor:latest
+  docker-compose up -d
+  sleep 10
+  curl http://localhost:3001/health
+EOF
+```
+
+## Next Steps
+
+1. ✅ Add secrets to GitHub
+2. ✅ Prepare EC2 instance (install Docker, create .env)
+3. ✅ Test pipeline with `git push origin master`
+4. ✅ Monitor Actions tab for build and deploy
+5. ✅ Verify service running on EC2 with `curl http://your-ec2-ip:3001/health`
+
+## References
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [Docker Build & Push Action](https://github.com/docker/build-push-action)
-- [appleboy/ssh-action](https://github.com/appleboy/ssh-action)
-- [Vercel GitHub Integration](https://vercel.com/docs/git)
+- [Docker Build and Push Action](https://github.com/docker/build-push-action)
 - [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)

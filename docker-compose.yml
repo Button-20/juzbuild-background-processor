@@ -15,6 +15,10 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
@@ -25,6 +29,26 @@ services:
     networks:
       - juzbuild
 
+  # Optional: Redis service (comment out if using external Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: juzbuild-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - juzbuild
+    volumes:
+      - redis_data:/data
+
 networks:
   juzbuild:
     driver: bridge
+
+volumes:
+  redis_data:

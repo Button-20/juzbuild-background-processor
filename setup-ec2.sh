@@ -65,12 +65,28 @@ sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker
   -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
+# Install Redis
+echo "🔴 Installing Redis..."
+sudo apt-get install -y redis-server
+
+# Configure Redis
+echo "⚙️  Configuring Redis..."
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# Verify Redis is running
+echo "✅ Verifying Redis..."
+redis-cli ping
+# Should output: PONG
+
 # Verify installations
 echo ""
-echo "✅ Verifying installations..."
+echo "✅ Verifying all installations..."
 docker --version
 docker-compose --version
 git --version
+redis-server --version
+redis-cli --version
 
 # Create application directory
 echo "📁 Creating application directory..."

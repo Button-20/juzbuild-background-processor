@@ -62,7 +62,7 @@ ls -la /var/www/html
 
 echo ""
 echo "🧪 Testing renewal with new configuration..."
-sudo certbot renew --dry-run --webroot -w /var/www/html -d "$DOMAIN" --force-renewal
+sudo certbot certonly --webroot -w /var/www/html -d "$DOMAIN" --force-renewal --dry-run
 
 if [ $? -eq 0 ]; then
     echo ""

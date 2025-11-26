@@ -4,14 +4,14 @@ node_modules/
 
 # Test files
 
-test-_.ts
-test-_.js
+test-*.ts
+test-*.js
 
 # Development dependencies
 
 .vscode/
 .env.local
-\*.log
+*.log
 
 # Templates directory
 
@@ -24,6 +24,5 @@ templates/
 
 # Config files
 
-tsconfig.json
 package-lock.json
 README.md

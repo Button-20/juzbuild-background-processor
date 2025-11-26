@@ -97,10 +97,10 @@ jobs:
             git pull origin master || git pull origin main
             
             echo "🔐 Logging in to Docker registry..."
-            echo "$DOCKER_PASSWORD" | docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME --password-stdin
+            echo "$DOCKER_PASSWORD" | docker login "$DOCKER_REGISTRY" -u "$DOCKER_USERNAME" --password-stdin
             
             echo "⬇️  Pulling latest Docker image..."
-            docker pull $DOCKER_REGISTRY/$IMAGE_NAME:latest
+            docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest"
             
             echo "🛑 Stopping old containers..."
             docker-compose down || true

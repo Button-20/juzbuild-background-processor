@@ -285,9 +285,9 @@ const initializeRedis = async () => {
 // Initialize Redis on module load (for both local and serverless)
 initializeRedis();
 
-// Start listening server in all environments except Vercel serverless
+// Start listening server ONLY in local development
 // Vercel serverless will import and use the app directly
-if (process.env.VERCEL !== "1") {
+if (process.env.NODE_ENV !== "production" || process.env.DOCKER_CONTAINER === "true") {
   app.listen(port, () => {
     console.log(
       `[${new Date().toISOString()}] JuzBuild Background Processor running on port ${port}`

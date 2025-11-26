@@ -13,6 +13,7 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      DOCKER_CONTAINER: "true"
       REDIS_URL: redis://redis:6379
     depends_on:
       redis:

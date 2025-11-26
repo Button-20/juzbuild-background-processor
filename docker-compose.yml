@@ -1,25 +1,18 @@
-version: "3.8"
+version: '3.8'
 
 services:
   background-processor:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: juzbuild-background-processor:latest
+    container_name: juzbuild-bg-processor
     ports:
       - "3001:3001"
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=${REDIS_URL}
-      - BACKGROUND_PROCESSOR_SECRET=${BACKGROUND_PROCESSOR_SECRET}
-      - GOOGLE_ANALYTICS_ACCOUNT_ID=${GOOGLE_ANALYTICS_ACCOUNT_ID}
-      - VERCEL_TOKEN=${VERCEL_TOKEN}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_USERNAME=${GITHUB_USERNAME}
-      - NAMECHEAP_API_KEY=${NAMECHEAP_API_KEY}
-      - NAMECHEAP_USERNAME=${NAMECHEAP_USERNAME}
-      - NAMECHEAP_CLIENT_IP=${NAMECHEAP_CLIENT_IP}
-      - JUZBUILD_RESEND_API_KEY=${JUZBUILD_RESEND_API_KEY}
-      - JUZBUILD_RESEND_FROM_EMAIL=${JUZBUILD_RESEND_FROM_EMAIL}
+      NODE_ENV: production
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
@@ -28,8 +21,8 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - juzbuild-network
+      - juzbuild
 
 networks:
-  juzbuild-network:
+  juzbuild:
     driver: bridge

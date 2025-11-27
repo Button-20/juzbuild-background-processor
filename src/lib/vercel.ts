@@ -64,6 +64,7 @@ class VercelAPI {
         devCommand: "npm run dev",
         outputDirectory: ".next",
         installCommand: "npm i -f",
+        nodeVersion: "22.x",
       },
     });
 

@@ -67,11 +67,10 @@ class VercelAPI {
           devCommand: "npm run dev",
           outputDirectory: ".next",
           installCommand: "npm i -f",
-          nodeVersion: "22.x",
         },
       });
     } catch (error: any) {
-      // If response validation fails due to nodeVersion being 24.x, 
+      // If response validation fails due to nodeVersion being 24.x,
       // we need to catch and work around it
       if (error.cause?.issues?.[0]?.path?.[0] === "nodeVersion") {
         console.warn(
@@ -94,7 +93,10 @@ class VercelAPI {
       try {
         await this.updateProjectNodeVersion(result.id, "22.x");
       } catch (updateError) {
-        console.warn("Failed to update nodeVersion after creation:", updateError);
+        console.warn(
+          "Failed to update nodeVersion after creation:",
+          updateError
+        );
         // Don't fail - the project was created, just the version update failed
       }
     }
@@ -125,14 +127,18 @@ class VercelAPI {
     nodeVersion: string
   ): Promise<void> {
     try {
-      console.log(`Updating project ${projectId} Node version to ${nodeVersion}`);
+      console.log(
+        `Updating project ${projectId} Node version to ${nodeVersion}`
+      );
       await this.vercel.projects.updateProject({
         idOrName: projectId,
         requestBody: {
           nodeVersion: nodeVersion as any,
         },
       });
-      console.log(`✓ Project ${projectId} Node version updated to ${nodeVersion}`);
+      console.log(
+        `✓ Project ${projectId} Node version updated to ${nodeVersion}`
+      );
     } catch (error) {
       console.warn(
         `Failed to update Node version for project ${projectId}:`,

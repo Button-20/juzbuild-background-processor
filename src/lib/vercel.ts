@@ -127,18 +127,12 @@ class VercelAPI {
     nodeVersion: string
   ): Promise<void> {
     try {
-      console.log(
-        `Updating project ${projectId} Node version to ${nodeVersion}`
-      );
       await this.vercel.projects.updateProject({
         idOrName: projectId,
         requestBody: {
           nodeVersion: nodeVersion as any,
         },
       });
-      console.log(
-        `✓ Project ${projectId} Node version updated to ${nodeVersion}`
-      );
     } catch (error) {
       console.warn(
         `Failed to update Node version for project ${projectId}:`,
@@ -188,34 +182,6 @@ class VercelAPI {
         upsert: "true",
         requestBody: envVarArray,
       });
-
-      // Log Google API Key specifically for debugging
-      const googleApiKeyVar = envVarArray.find(
-        (v) => v.key === "GOOGLE_API_KEY"
-      );
-      if (googleApiKeyVar) {
-        console.log(
-          `✓ Google API Key environment variable set: ${
-            googleApiKeyVar.value ? "(provided)" : "(empty)"
-          }`
-        );
-      }
-
-      // Log WhatsApp number specifically for debugging
-      const whatsappVar = envVarArray.find(
-        (v) => v.key === "NEXT_PUBLIC_WHATSAPP_NUMBER"
-      );
-      if (whatsappVar) {
-        console.log(
-          `✓ WhatsApp Number environment variable set: ${
-            whatsappVar.value || "(empty)"
-          }`
-        );
-      }
-
-      console.log(
-        `✓ Successfully configured ${envVarArray.length} environment variables for project: ${projectName}`
-      );
     } catch (error) {
       console.error(
         `Failed to add environment variables to project ${projectName}:`,
@@ -297,10 +263,6 @@ class VercelAPI {
       throw new Error(`Invalid GitHub URL format: ${gitUrl}`);
     }
 
-    console.log(
-      `Creating Vercel deployment from GitHub: ${orgName}/${repoName}`
-    );
-
     let deploymentResult;
 
     try {
@@ -319,7 +281,6 @@ class VercelAPI {
       });
     } catch (mainBranchError) {
       // If main branch fails, try master branch
-      console.log("Main branch failed, trying master branch...");
       try {
         deploymentResult = await this.vercel.deployments.createDeployment({
           requestBody: {
@@ -464,16 +425,12 @@ class VercelAPI {
     }>;
   }> {
     try {
-      console.log(`Adding domain ${domainName} to project ${projectName}...`);
-
       const addDomainResponse = await this.vercel.projects.addProjectDomain({
         idOrName: projectName,
         requestBody: {
           name: domainName,
         },
       });
-
-      console.log(`✓ Domain added: ${addDomainResponse.name}`);
 
       const result: {
         name: string;
@@ -582,15 +539,10 @@ class VercelAPI {
    */
   async deleteProject(projectId: string): Promise<void> {
     try {
-      console.log(`Deleting Vercel project: ${projectId}`);
-
       await this.vercel.projects.deleteProject({
         idOrName: projectId,
       });
-
-      console.log(`✓ Vercel project deleted: ${projectId}`);
     } catch (error) {
-      // Log warning but don't fail - project might already be deleted or not exist
       console.warn(`Failed to delete Vercel project ${projectId}:`, error);
       throw error;
     }

@@ -18,3 +18,6 @@ coverage
 setup-ec2.sh
 juzbuild-background-processor-server.pem
 juzbuild-ga4-*.json
+# Exclude build artifacts from templates to reduce image size
+templates/**/*.map
+templates/**/*.js

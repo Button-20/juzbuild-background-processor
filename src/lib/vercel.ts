@@ -52,21 +52,52 @@ class VercelAPI {
   ): Promise<VercelProject> {
     const repoPath = gitUrl.replace("https://github.com/", "");
 
-    const result = await this.vercel.projects.createProject({
-      requestBody: {
-        name,
-        gitRepository: {
-          type: "github",
-          repo: repoPath,
+    // Try to create project with nodeVersion in request
+    let result;
+    try {
+      result = await this.vercel.projects.createProject({
+        requestBody: {
+          name,
+          gitRepository: {
+            type: "github",
+            repo: repoPath,
+          },
+          framework: "nextjs" as const,
+          buildCommand: "npm run build",
+          devCommand: "npm run dev",
+          outputDirectory: ".next",
+          installCommand: "npm i -f",
+          nodeVersion: "22.x",
         },
-        framework: "nextjs" as const,
-        buildCommand: "npm run build",
-        devCommand: "npm run dev",
-        outputDirectory: ".next",
-        installCommand: "npm i -f",
-        nodeVersion: "22.x",
-      },
-    });
+      });
+    } catch (error: any) {
+      // If response validation fails due to nodeVersion being 24.x, 
+      // we need to catch and work around it
+      if (error.cause?.issues?.[0]?.path?.[0] === "nodeVersion") {
+        console.warn(
+          "Vercel API returned nodeVersion 24.x despite request for 22.x - will update after creation"
+        );
+        // Parse the raw response to get project data
+        try {
+          const body = JSON.parse(error.body || "{}");
+          result = body;
+        } catch {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    // Update nodeVersion after creation to ensure it's set correctly
+    if (result && result.id) {
+      try {
+        await this.updateProjectNodeVersion(result.id, "22.x");
+      } catch (updateError) {
+        console.warn("Failed to update nodeVersion after creation:", updateError);
+        // Don't fail - the project was created, just the version update failed
+      }
+    }
 
     // Configure environment variables after project creation
     if (envVars && Object.keys(envVars).length > 0) {
@@ -82,6 +113,33 @@ class VercelAPI {
       buildCommand: result.buildCommand || "npm run build",
       outputDirectory: result.outputDirectory || ".next",
     };
+  }
+
+  /**
+   * Update project Node version
+   * @param projectId - Project ID
+   * @param nodeVersion - Node version to set (e.g., "22.x")
+   */
+  private async updateProjectNodeVersion(
+    projectId: string,
+    nodeVersion: string
+  ): Promise<void> {
+    try {
+      console.log(`Updating project ${projectId} Node version to ${nodeVersion}`);
+      await this.vercel.projects.updateProject({
+        idOrName: projectId,
+        requestBody: {
+          nodeVersion: nodeVersion as any,
+        },
+      });
+      console.log(`✓ Project ${projectId} Node version updated to ${nodeVersion}`);
+    } catch (error) {
+      console.warn(
+        `Failed to update Node version for project ${projectId}:`,
+        error
+      );
+      throw error;
+    }
   }
 
   /**

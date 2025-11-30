@@ -51,8 +51,8 @@ interface WebsiteCreationOptions {
   fullName: string;
   companyName: string;
   domainName: string;
-  logoUrl?: string; // Cloudinary URL for uploaded logo
-  faviconUrl?: string; // Browser tab icon
+  logoUrl: string; // Cloudinary URL for uploaded logo
+  faviconUrl: string; // Browser tab icon
   brandColors: string[];
   tagline: string;
   aboutSection: string;
@@ -2411,38 +2411,31 @@ export default function RootLayout({
       await fs.writeFile(layoutPath, minimalLayout);
     }
 
-    // Replace logos and favicon with user's uploaded assets if provided
-    if (options.logoUrl || options.faviconUrl) {
-      await this.replaceLogosInTemplate(templatePath, options.logoUrl, options.faviconUrl);
-    }
+    // Replace logos and favicon with user's uploaded assets
+    await this.replaceLogosInTemplate(templatePath, options.logoUrl, options.faviconUrl);
   }
 
   private async replaceLogosInTemplate(
     templatePath: string,
-    logoUrl?: string,
-    faviconUrl?: string
+    logoUrl: string,
+    faviconUrl: string
   ): Promise<void> {
     try {
-      // Process logo if provided
-      if (logoUrl) {
-        // Optimize logo URL for sizing if it's a Cloudinary URL
-        const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
+      // Process logo
+      // Optimize logo URL for sizing if it's a Cloudinary URL
+      const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
 
-        // Replace logo references in components
-        await this.replaceLogoReferencesInComponents(
-          templatePath,
-          optimizedLogoUrl
-        );
+      // Replace logo references in components
+      await this.replaceLogoReferencesInComponents(
+        templatePath,
+        optimizedLogoUrl
+      );
 
-        // Add CSS rules for logo sizing
-        await this.addLogoSizingCSS(templatePath);
-      }
+      // Add CSS rules for logo sizing
+      await this.addLogoSizingCSS(templatePath);
 
-      // Replace favicon with user's favicon or fallback to logo
-      const faviconToUse = faviconUrl || logoUrl;
-      if (faviconToUse) {
-        await this.replaceFavicon(templatePath, faviconToUse);
-      }
+      // Replace favicon with user's favicon
+      await this.replaceFavicon(templatePath, faviconUrl);
     } catch (error) {
       // Logo replacement is optional, don't fail the entire process
     }

@@ -52,6 +52,7 @@ interface WebsiteCreationOptions {
   companyName: string;
   domainName: string;
   logoUrl?: string; // Cloudinary URL for uploaded logo
+  faviconUrl?: string; // Browser tab icon
   brandColors: string[];
   tagline: string;
   aboutSection: string;
@@ -778,8 +779,9 @@ class WebsiteCreationService {
             leadCaptureMethods: options.leadCaptureMethods || [],
             includedPages: options.includedPages || [],
             userEmail: options.userEmail,
-            // Logo
+            // Logo and Favicon
             logoUrl: options.logoUrl || "",
+            faviconUrl: options.faviconUrl || "",
             // Contact Information
             phoneNumber: options.phoneNumber || "",
             whatsappNumber: options.whatsappNumber || "",
@@ -2409,80 +2411,38 @@ export default function RootLayout({
       await fs.writeFile(layoutPath, minimalLayout);
     }
 
-    // Replace logos with user's uploaded logo if provided
-    if (options.logoUrl) {
-      await this.replaceLogosInTemplate(templatePath, options.logoUrl);
+    // Replace logos and favicon with user's uploaded assets if provided
+    if (options.logoUrl || options.faviconUrl) {
+      await this.replaceLogosInTemplate(templatePath, options.logoUrl, options.faviconUrl);
     }
   }
 
   private async replaceLogosInTemplate(
     templatePath: string,
-    logoUrl: string
+    logoUrl?: string,
+    faviconUrl?: string
   ): Promise<void> {
     try {
-      // Optimize logo URL for sizing if it's a Cloudinary URL
-      const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
+      // Process logo if provided
+      if (logoUrl) {
+        // Optimize logo URL for sizing if it's a Cloudinary URL
+        const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
 
-      // Replace favicon.ico with the logo
-      await this.replaceFavicon(templatePath, logoUrl);
+        // Replace logo references in components
+        await this.replaceLogoReferencesInComponents(
+          templatePath,
+          optimizedLogoUrl
+        );
 
-      // Common logo file patterns to replace
-      const logoPatterns = [
-        "logo.svg",
-        "logo.png",
-        "logo.jpg",
-        "logo-dark.svg",
-        "logo-light.svg",
-        "icon.svg",
-        "icon.png",
-      ];
-
-      // Search in common directories
-      const searchDirs = [
-        "public",
-        "public/images",
-        "public/icons",
-        "public/assets",
-        "src/assets",
-        "assets",
-      ];
-
-      for (const searchDir of searchDirs) {
-        const fullSearchPath = path.join(templatePath, searchDir);
-
-        try {
-          const files = await fs.readdir(fullSearchPath, { recursive: true });
-
-          for (const file of files) {
-            const fileName = path.basename(file.toString());
-            if (logoPatterns.includes(fileName.toLowerCase())) {
-              const filePath = path.join(fullSearchPath, file.toString());
-
-              // Download the optimized logo from Cloudinary and replace the file
-              try {
-                const response = await fetch(optimizedLogoUrl);
-                if (response.ok) {
-                  const buffer = await response.arrayBuffer();
-                  await fs.writeFile(filePath, Buffer.from(buffer));
-                }
-              } catch (downloadError) {
-                // Continue with other files if one fails
-              }
-            }
-          }
-        } catch (dirError) {
-          // Directory might not exist, continue with others
-        }
+        // Add CSS rules for logo sizing
+        await this.addLogoSizingCSS(templatePath);
       }
 
-      // Also replace logo references in component files
-      await this.replaceLogoReferencesInComponents(
-        templatePath,
-        optimizedLogoUrl
-      );
-
-      // Add CSS rules for logo sizing
-      await this.addLogoSizingCSS(templatePath);
+      // Replace favicon with user's favicon or fallback to logo
+      const faviconToUse = faviconUrl || logoUrl;
+      if (faviconToUse) {
+        await this.replaceFavicon(templatePath, faviconToUse);
+      }
     } catch (error) {
       // Logo replacement is optional, don't fail the entire process
     }

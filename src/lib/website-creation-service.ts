@@ -2561,23 +2561,23 @@ export default function RootLayout({
   }
 
   /**
-   * Replace the favicon with the user's logo
+   * Replace the favicon with the user's favicon
    */
   private async replaceFavicon(
     templatePath: string,
-    logoUrl: string
+    faviconUrl: string
   ): Promise<void> {
     try {
       // Favicon-specific transformation for square icon (32x32)
-      let faviconUrl = logoUrl;
+      let finalFaviconUrl = faviconUrl;
       if (
-        logoUrl.includes("cloudinary.com") ||
-        logoUrl.includes("res.cloudinary.com")
+        faviconUrl.includes("cloudinary.com") ||
+        faviconUrl.includes("res.cloudinary.com")
       ) {
         // Transform to ICO format, 32x32, cropped to square
         const faviconTransformations = "w_32,h_32,c_fill,f_ico,q_auto";
-        if (logoUrl.includes("/upload/")) {
-          faviconUrl = logoUrl.replace(
+        if (faviconUrl.includes("/upload/")) {
+          finalFaviconUrl = faviconUrl.replace(
             "/upload/",
             `/upload/${faviconTransformations}/`
           );
@@ -2597,8 +2597,8 @@ export default function RootLayout({
           // Check if file exists
           await fs.access(faviconPath);
 
-          // Download the favicon-sized logo
-          const response = await fetch(faviconUrl);
+          // Download the favicon
+          const response = await fetch(finalFaviconUrl);
           if (response.ok) {
             const buffer = await response.arrayBuffer();
             await fs.writeFile(faviconPath, Buffer.from(buffer));
@@ -2611,7 +2611,7 @@ export default function RootLayout({
       }
 
       // Also create icon.png versions for better compatibility
-      await this.createIconVariants(templatePath, logoUrl);
+      await this.createIconVariants(templatePath, faviconUrl);
     } catch (error) {
       console.error("❌ Failed to replace favicon:", error);
       // Favicon replacement is optional, don't fail the entire process
@@ -2623,12 +2623,12 @@ export default function RootLayout({
    */
   private async createIconVariants(
     templatePath: string,
-    logoUrl: string
+    iconUrl: string
   ): Promise<void> {
     try {
       if (
-        !logoUrl.includes("cloudinary.com") &&
-        !logoUrl.includes("res.cloudinary.com")
+        !iconUrl.includes("cloudinary.com") &&
+        !iconUrl.includes("res.cloudinary.com")
       ) {
         // Only create variants for Cloudinary URLs where we can transform
         return;
@@ -2656,15 +2656,14 @@ export default function RootLayout({
       for (const variant of iconVariants) {
         // Create transformation for this size
         const transformations = `w_${variant.size},h_${variant.size},c_fill,f_png,q_auto`;
-        const iconUrl = logoUrl.replace(
-          "/upload/",
-          `/upload/${transformations}/`
-        );
+        const variantUrl = iconUrl.includes("/upload/")
+          ? iconUrl.replace("/upload/", `/upload/${transformations}/`)
+          : iconUrl;
 
         // Try each possible path
         for (const iconPath of variant.paths) {
           try {
-            const response = await fetch(iconUrl);
+            const response = await fetch(variantUrl);
             if (response.ok) {
               const buffer = await response.arrayBuffer();
               await fs.writeFile(iconPath, Buffer.from(buffer));

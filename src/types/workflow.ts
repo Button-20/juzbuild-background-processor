@@ -7,7 +7,8 @@ export interface WebsiteCreationOptions {
   fullName: string;
   companyName: string;
   domainName: string;
-  logoUrl?: string; // Cloudinary URL for uploaded logo
+  logoUrl: string; // Cloudinary URL for uploaded logo
+  faviconUrl: string; // Browser tab icon
   brandColors: string[];
   tagline: string;
   aboutSection: string;

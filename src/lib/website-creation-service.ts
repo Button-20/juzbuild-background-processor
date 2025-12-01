@@ -2682,7 +2682,10 @@ export default function RootLayout({
               const buffer = await response.arrayBuffer();
               await fs.writeFile(iconPath, Buffer.from(buffer));
               console.log(
-                `  ✅ Created ${variant.name} at: ${iconPath.replace(templatePath, "")}`
+                `  ✅ Created ${variant.name} at: ${iconPath.replace(
+                  templatePath,
+                  ""
+                )}`
               );
               variantCreated = true;
               break; // Success, move to next variant

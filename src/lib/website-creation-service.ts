@@ -2412,7 +2412,11 @@ export default function RootLayout({
     }
 
     // Replace logos and favicon with user's uploaded assets
-    await this.replaceLogosInTemplate(templatePath, options.logoUrl, options.faviconUrl);
+    await this.replaceLogosInTemplate(
+      templatePath,
+      options.logoUrl,
+      options.faviconUrl
+    );
   }
 
   private async replaceLogosInTemplate(
@@ -2435,8 +2439,19 @@ export default function RootLayout({
       await this.addLogoSizingCSS(templatePath);
 
       // Replace favicon with user's favicon
-      await this.replaceFavicon(templatePath, faviconUrl);
+      if (faviconUrl) {
+        await this.replaceFavicon(templatePath, faviconUrl);
+      } else {
+        console.warn(
+          "⚠️ Favicon URL is missing or empty - skipping favicon replacement"
+        );
+      }
     } catch (error) {
+      console.error(
+        `❌ Logo/Favicon replacement error: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
       // Logo replacement is optional, don't fail the entire process
     }
   }
@@ -2568,52 +2583,40 @@ export default function RootLayout({
     faviconUrl: string
   ): Promise<void> {
     try {
-      // Favicon-specific transformation for square icon (32x32)
-      let finalFaviconUrl = faviconUrl;
-      if (
-        faviconUrl.includes("cloudinary.com") ||
-        faviconUrl.includes("res.cloudinary.com")
-      ) {
-        // Transform to ICO format, 32x32, cropped to square
-        const faviconTransformations = "w_32,h_32,c_fill,f_ico,q_auto";
-        if (faviconUrl.includes("/upload/")) {
-          finalFaviconUrl = faviconUrl.replace(
-            "/upload/",
-            `/upload/${faviconTransformations}/`
-          );
-        }
+      if (!faviconUrl || faviconUrl.trim() === "") {
+        console.warn(
+          "⚠️ Favicon URL is empty string - skipping favicon replacement"
+        );
+        return;
       }
 
-      // Paths where favicon might be located
-      const faviconPaths = [
-        path.join(templatePath, "public", "favicon.ico"),
-        path.join(templatePath, "src", "app", "favicon.ico"),
-        path.join(templatePath, "app", "favicon.ico"),
-      ];
+      // Update layout.tsx to include the favicon URL in the metadata icons object
+      const layoutPath = path.join(templatePath, "src", "app", "layout.tsx");
 
-      // Download and replace favicon
-      for (const faviconPath of faviconPaths) {
-        try {
-          // Check if file exists
-          await fs.access(faviconPath);
+      try {
+        let layoutContent = await fs.readFile(layoutPath, "utf-8");
 
-          // Download the favicon
-          const response = await fetch(finalFaviconUrl);
-          if (response.ok) {
-            const buffer = await response.arrayBuffer();
-            await fs.writeFile(faviconPath, Buffer.from(buffer));
-            // Replaced favicon
-          }
-        } catch (error) {
-          // File doesn't exist or couldn't be replaced, continue to next path
-          continue;
-        }
+        // Replace the favicon URL in the metadata icons object
+        // Pattern: { url: "/favicon.ico", sizes: "any" }, → { url: "CLOUDINARY_URL", sizes: "any" },
+        layoutContent = layoutContent.replace(
+          /\{\s*url:\s*"\/favicon\.ico",\s*sizes:\s*"any"\s*\},?/,
+          `{ url: "${faviconUrl}", sizes: "any" },`
+        );
+
+        await fs.writeFile(layoutPath, layoutContent);
+      } catch (fileError) {
+        console.warn(
+          `⚠️ Error updating layout.tsx: ${
+            fileError instanceof Error ? fileError.message : fileError
+          }`
+        );
       }
-
-      // Also create icon.png versions for better compatibility
-      await this.createIconVariants(templatePath, faviconUrl);
     } catch (error) {
-      console.error("❌ Failed to replace favicon:", error);
+      console.error(
+        `❌ Failed to set favicon: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
       // Favicon replacement is optional, don't fail the entire process
     }
   }
@@ -2626,11 +2629,16 @@ export default function RootLayout({
     iconUrl: string
   ): Promise<void> {
     try {
+      console.log(`📸 Creating icon variants from: ${iconUrl}`);
+
       if (
         !iconUrl.includes("cloudinary.com") &&
         !iconUrl.includes("res.cloudinary.com")
       ) {
         // Only create variants for Cloudinary URLs where we can transform
+        console.log(
+          "ℹ️ Icon URL is not from Cloudinary - skipping variant creation"
+        );
         return;
       }
 
@@ -2660,24 +2668,53 @@ export default function RootLayout({
           ? iconUrl.replace("/upload/", `/upload/${transformations}/`)
           : iconUrl;
 
+        console.log(
+          `📥 Creating variant: ${variant.name} (${variant.size}x${variant.size})`
+        );
+
         // Try each possible path
+        let variantCreated = false;
         for (const iconPath of variant.paths) {
           try {
+            console.log(`  Trying path: ${iconPath.replace(templatePath, "")}`);
             const response = await fetch(variantUrl);
             if (response.ok) {
               const buffer = await response.arrayBuffer();
               await fs.writeFile(iconPath, Buffer.from(buffer));
-              // Created icon variant
+              console.log(
+                `  ✅ Created ${variant.name} at: ${iconPath.replace(templatePath, "")}`
+              );
+              variantCreated = true;
               break; // Success, move to next variant
+            } else {
+              console.warn(
+                `  ⚠️ Failed to download ${variant.name}: HTTP ${response.status}`
+              );
             }
           } catch (error) {
-            // Continue to next path
+            console.warn(
+              `  ⚠️ Error creating ${variant.name}: ${
+                error instanceof Error ? error.message : error
+              }`
+            );
             continue;
           }
         }
+
+        if (!variantCreated) {
+          console.warn(
+            `⚠️ Could not create ${variant.name} at any standard location`
+          );
+        }
       }
+
+      console.log("✅ Icon variant creation completed");
     } catch (error) {
-      console.error("❌ Failed to create icon variants:", error);
+      console.error(
+        `❌ Failed to create icon variants: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
       // Icon variant creation is optional
     }
   }

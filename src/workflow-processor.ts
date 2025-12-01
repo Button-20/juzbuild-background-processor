@@ -43,11 +43,6 @@ export class WorkflowProcessor {
         options.websiteName
       } (Job ID: ${actualJobId})`
     );
-    console.log(` User: ${options.userEmail}`);
-    console.log(` Company: ${options.companyName}`);
-    console.log(` Domain: ${options.domainName}`);
-    console.log(` Theme: ${options.selectedTheme}`);
-
     // Create job in Redis with initial steps
     try {
       await jobTracker.createJob(actualJobId, {

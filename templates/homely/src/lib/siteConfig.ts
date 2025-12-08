@@ -7,6 +7,7 @@
 
 export interface SiteConfig {
   logoUrl: string;
+  darkModeLogoUrl?: string;
   contact: {
     phone: string;
     email: string;
@@ -76,6 +77,7 @@ export const getSiteConfig = async (): Promise<SiteConfig> => {
 
   return {
     logoUrl: dbSettings?.logoUrl || "",
+    darkModeLogoUrl: dbSettings?.darkModeLogoUrl || "",
     contact: {
       phone:
         dbSettings?.phoneNumber ||

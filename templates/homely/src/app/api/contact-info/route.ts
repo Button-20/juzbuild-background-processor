@@ -9,6 +9,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       logoUrl: config.logoUrl || "",
+      darkModeLogoUrl: config.darkModeLogoUrl || "",
       contact: config.contact,
       social: config.social,
     });

@@ -19,6 +19,7 @@ export interface ContactData {
     youtube: string;
   };
   logoUrl?: string;
+  darkModeLogoUrl?: string;
 }
 
 let cachedContactData: ContactData | null = null;
@@ -42,6 +43,7 @@ export async function fetchContactData(): Promise<ContactData> {
         contact: data.contact,
         social: data.social,
         logoUrl: data.logoUrl || "",
+        darkModeLogoUrl: data.darkModeLogoUrl || "",
       };
       cachetime = now + CACHE_DURATION;
       return cachedContactData;
@@ -67,5 +69,6 @@ export async function fetchContactData(): Promise<ContactData> {
       youtube: "",
     },
     logoUrl: "",
+    darkModeLogoUrl: "",
   };
 }

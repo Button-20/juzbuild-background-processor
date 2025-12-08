@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
         leadCaptureMethods: settings.leadCaptureMethods || [],
         includedPages: settings.includedPages || [],
         userEmail: settings.userEmail || "",
+        logoUrl: settings.logoUrl || "",
+        darkModeLogoUrl: settings.darkModeLogoUrl || "",
+        faviconUrl: settings.faviconUrl || "",
       },
     });
   } catch (error) {

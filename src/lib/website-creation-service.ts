@@ -51,7 +51,8 @@ interface WebsiteCreationOptions {
   fullName: string;
   companyName: string;
   domainName: string;
-  logoUrl: string; // Cloudinary URL for uploaded logo
+  logoUrl: string; // Cloudinary URL for uploaded light mode logo
+  darkModeLogoUrl?: string; // Cloudinary URL for uploaded dark mode logo
   faviconUrl: string; // Browser tab icon
   brandColors: string[];
   tagline: string;
@@ -781,6 +782,7 @@ class WebsiteCreationService {
             userEmail: options.userEmail,
             // Logo and Favicon
             logoUrl: options.logoUrl || "",
+            darkModeLogoUrl: options.darkModeLogoUrl || "",
             faviconUrl: options.faviconUrl || "",
             // Contact Information
             phoneNumber: options.phoneNumber || "",
@@ -2415,6 +2417,7 @@ export default function RootLayout({
     await this.replaceLogosInTemplate(
       templatePath,
       options.logoUrl,
+      options.darkModeLogoUrl,
       options.faviconUrl
     );
   }
@@ -2422,17 +2425,22 @@ export default function RootLayout({
   private async replaceLogosInTemplate(
     templatePath: string,
     logoUrl: string,
+    darkModeLogoUrl: string | undefined,
     faviconUrl: string
   ): Promise<void> {
     try {
       // Process logo
       // Optimize logo URL for sizing if it's a Cloudinary URL
       const optimizedLogoUrl = this.optimizeLogoUrl(logoUrl);
+      const optimizedDarkModeLogoUrl = darkModeLogoUrl
+        ? this.optimizeLogoUrl(darkModeLogoUrl)
+        : undefined;
 
       // Replace logo references in components
       await this.replaceLogoReferencesInComponents(
         templatePath,
-        optimizedLogoUrl
+        optimizedLogoUrl,
+        optimizedDarkModeLogoUrl
       );
 
       // Add CSS rules for logo sizing
@@ -2458,7 +2466,8 @@ export default function RootLayout({
 
   private async replaceLogoReferencesInComponents(
     templatePath: string,
-    logoUrl: string
+    logoUrl: string,
+    darkModeLogoUrl?: string
   ): Promise<void> {
     try {
       // Find all component files that might reference logos
@@ -2484,6 +2493,34 @@ export default function RootLayout({
 
               try {
                 let content = await fs.readFile(filePath, "utf-8");
+
+                // If dark mode logo is provided, add it as a conditional import/variable
+                if (darkModeLogoUrl) {
+                  // Add dark mode logo variable at the top of component files if they have imports
+                  if (
+                    content.includes("import") &&
+                    !content.includes("DARK_MODE_LOGO_URL")
+                  ) {
+                    const importEndIndex = content.lastIndexOf("import");
+                    const lineEndIndex = content.indexOf(
+                      "\n",
+                      importEndIndex
+                    );
+                    if (importEndIndex !== -1 && lineEndIndex !== -1) {
+                      content = `${content.substring(0, lineEndIndex + 1)}const DARK_MODE_LOGO_URL = "${darkModeLogoUrl}";\nconst LIGHT_MODE_LOGO_URL = "${logoUrl}";\n${content.substring(lineEndIndex + 1)}`;
+                    }
+                  }
+
+                  // Replace logo references to use conditional rendering in dark mode
+                  // For components that might support dark mode
+                  content = content.replace(
+                    /className\s*=\s*"([^"]*dark:[^"]*)"([^>]*src\s*=\s*['"`])[^'"`]*logo[^'"`]*(['"`])/gi,
+                    (match, darkClasses, before, after) => {
+                      // This is a dark mode aware element, add conditional src
+                      return `${before}${logoUrl}${after} data-light-logo="${logoUrl}" data-dark-logo="${darkModeLogoUrl}"`;
+                    }
+                  );
+                }
 
                 // Replace common logo import patterns
                 content = content.replace(

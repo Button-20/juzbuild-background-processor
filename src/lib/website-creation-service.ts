@@ -2502,12 +2502,14 @@ export default function RootLayout({
                     !content.includes("DARK_MODE_LOGO_URL")
                   ) {
                     const importEndIndex = content.lastIndexOf("import");
-                    const lineEndIndex = content.indexOf(
-                      "\n",
-                      importEndIndex
-                    );
+                    const lineEndIndex = content.indexOf("\n", importEndIndex);
                     if (importEndIndex !== -1 && lineEndIndex !== -1) {
-                      content = `${content.substring(0, lineEndIndex + 1)}const DARK_MODE_LOGO_URL = "${darkModeLogoUrl}";\nconst LIGHT_MODE_LOGO_URL = "${logoUrl}";\n${content.substring(lineEndIndex + 1)}`;
+                      content = `${content.substring(
+                        0,
+                        lineEndIndex + 1
+                      )}const DARK_MODE_LOGO_URL = "${darkModeLogoUrl}";\nconst LIGHT_MODE_LOGO_URL = "${logoUrl}";\n${content.substring(
+                        lineEndIndex + 1
+                      )}`;
                     }
                   }
 

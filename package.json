@@ -4,8 +4,8 @@
   "description": "Background processor for JuzBuild website creation workflows",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/server.ts",
+    "start": "node api.js && node dist/server.js",
+    "dev": "node api.js && nodemon --exec \"node --loader ts-node/esm\" src/server.ts",
     "build": "tsc",
     "clean": "if exist dist rmdir /s /q dist",
     "build:clean": "npm run clean && npm run build",
@@ -32,7 +32,6 @@
     "axios": "^1.12.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "form-data": "^4.0.4",
     "fs-extra": "^11.3.2",

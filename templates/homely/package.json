@@ -4,10 +4,10 @@
   "description": "Modern real estate website for browsing and discovering properties",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:turbopack": "next dev --turbopack",
+    "dev": "node api.js && next dev",
+    "dev:turbopack": "node api.js && next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "node api.js && next start",
     "lint": "next lint"
   },
   "keywords": [

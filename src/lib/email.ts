@@ -114,22 +114,23 @@ export async function sendWebsiteCreationEmail(websiteData: {
         }
         .feature-item {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 15px;
         }
         .feature-icon {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             background: #667eea;
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 24px;
             font-weight: bold;
             margin-right: 15px;
             flex-shrink: 0;
+            line-height: 1;
         }
         .footer { 
             background: #f8fafc; 
